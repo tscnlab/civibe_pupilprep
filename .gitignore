@@ -396,3 +396,8 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# my folders to ignore
+
+Simulated_folder/
+*.csv
