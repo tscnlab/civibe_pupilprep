@@ -58,6 +58,20 @@ def make_protocol_dfs(fp_protocol: str):
     ]
     return protocol_vars_df, protocol_timecourse_df
 
+def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
+    """
+    Function for making a dataframe from the whole test recording
+    fp_whole_exp - string, path to csv file with whole test data
+    fp_protocol - string, path to csv with protocol data (for eye information)
+    Returns:
+    data_df - DataFrame with data from the whole test recording, with an added column 'Eye' - L or R
+    """
+
+    data_df = pd.read_csv(fp_whole_exp, delimiter=";")
+    data_df["Eye"] = [
+        "L" if "left" in fp_protocol else "R" for i in range(len(data_df))
+    ]
+    return data_df
 
 def make_experiment_df(fp_recording: list, fp_protocol: str):
     """
