@@ -399,5 +399,5 @@ FodyWeavers.xsd
 
 # my folders to ignore
 
-Simulated_folder/
+Simulated_folder*/
 *.csv
