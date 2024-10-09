@@ -75,7 +75,7 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
     return data_df
 
 
-def make_experiment_df(fp_recording: list, fp_protocol: str):
+def make_concat_df(fp_recording: list, fp_protocol: str):
     """
     Function for making an experiment dataframe from separate trial files.
     fp_recording - list of strings, list of paths to separate recording files from adaptation and trials, position 0 must be the adaptation
@@ -87,7 +87,7 @@ def make_experiment_df(fp_recording: list, fp_protocol: str):
         [pd.read_csv(filepath, delimiter=";") for filepath in fp_recording]
     )
     concat_df["Eye"] = [
-        "L" if "left" in fp_protocol else "R" for i in range(len(experiment_df))
+        "L" if "left" in fp_protocol else "R" for i in range(len(concat_df))
     ]
     return concat_df
 
