@@ -58,6 +58,7 @@ def make_protocol_dfs(fp_protocol: str):
     ]
     return protocol_vars_df, protocol_timecourse_df
 
+
 def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
     """
     Function for making a dataframe from the whole test recording
@@ -73,28 +74,23 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
     ]
     return data_df
 
+
 def make_experiment_df(fp_recording: list, fp_protocol: str):
     """
     Function for making an experiment dataframe from separate trial files.
     fp_recording - list of strings, list of paths to separate recording files from adaptation and trials, position 0 must be the adaptation
     fp_protocol - string, path to protocol csv file (for eye information)
     Returns:
-    experiment_df - DataFrame, concatenated trial data with additional columns: 'Trial number' - Adaptation or 1:n, 'Eye' - L or R
+    concat_df - DataFrame, concatenated trial data with additional column: 'Eye' - L or R
     """
-
-    dfs = []
-    for i, filepath in enumerate(fp_recording):
-        if i == 0:
-            data_df = pd.read_csv(filepath, delimiter=";")
-            data_df["Trial number"] = ["Adaptation"] * len(data_df)
-            dfs.append(data_df)
-        else:
-            data_df = pd.read_csv(filepath, delimiter=";")
-            data_df["Trial number"] = [i] * len(data_df)
-            dfs.append(data_df)
-
-    experiment_df = pd.concat(dfs)
-    experiment_df["Eye"] = [
+    concat_df = pd.concat(
+        [pd.read_csv(filepath, delimiter=";") for filepath in fp_recording]
+    )
+    concat_df["Eye"] = [
         "L" if "left" in fp_protocol else "R" for i in range(len(experiment_df))
     ]
-    return experiment_df
+    return concat_df
+
+
+class DataLoader:
+    pass
