@@ -35,6 +35,45 @@ def make_filepaths(rootdir: str):
 
     return fp_protocol, fp_recording, fp_whole_exp
 
+def mark_phases(data_df,fp_protocol):
+    data_df["Phase"] = ["N/A"] * len(data_df)
+
+    for seq_id in data_df["Sequence index"].unique():
+
+        seq_length = data_df["Sequence time Sec"][
+            data_df["Sequence index"] == seq_id
+        ].max()
+
+        data_df.loc[
+            (data_df["Sequence index"] == seq_id)
+            & (data_df["Sequence time Sec"] >= seq_length - 1),
+            "Phase",
+        ] = "pre-stim"
+
+        if seq_id == 1:
+            data_df.loc[(data_df["Sequence index"] == seq_id) & (data_df["Phase"] == "N/A"), "Phase"] = "Adaptation"
+        else:
+            if "left" in fp_protocol:
+                data_df.loc[
+                    (data_df["Sequence index"] == seq_id)
+                    & (data_df["Excitation label - Left"] != 'baseline'),
+                    "Phase"
+                ] = "stim"
+            else:
+                data_df.loc[
+                    (data_df["Sequence index"] == seq_id)
+                    & (data_df["Excitation label - Right"] != 'baseline'),
+                    "Phase"
+                ] = "stim"
+            data_df.loc[
+                (data_df["Sequence index"] == seq_id)
+                & (data_df["Experiment state"] == 'Passive'),
+                "Phase"
+            ] = "Transition"
+            data_df.loc[data_df["Phase"] == "N/A", "Phase"] = "post-stim"
+    return data_df
+
+
 
 def make_protocol_dfs(fp_protocol: str):
     """
@@ -82,41 +121,7 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
     data_df["Eye"] = [
         "L" if "left" in fp_protocol else "R" for i in range(len(data_df))
     ]
-    data_df["Phase"] = ["N/A"] * len(data_df)
-
-    for seq_id in data_df["Sequence index"].unique():
-
-        seq_length = data_df["Sequence time Sec"][
-            data_df["Sequence index"] == seq_id
-        ].max()
-
-        data_df.loc[
-            (data_df["Sequence index"] == seq_id)
-            & (data_df["Sequence time Sec"] >= seq_length - 1),
-            "Phase",
-        ] = "pre-stim"
-
-        if seq_id == 1:
-            data_df.loc[(data_df["Sequence index"] == seq_id) & (data_df["Phase"] == "N/A"), "Phase"] = "Adaptation"
-        else:
-            if "left" in fp_protocol:
-                data_df.loc[
-                    (data_df["Sequence index"] == seq_id)
-                    & (data_df["Excitation label - Left"] != 'baseline'),
-                    "Phase"
-                ] = "stim"
-            else:
-                data_df.loc[
-                    (data_df["Sequence index"] == seq_id)
-                    & (data_df["Excitation label - Right"] != 'baseline'),
-                    "Phase"
-                ] = "stim"
-            data_df.loc[
-                (data_df["Sequence index"] == seq_id)
-                & (data_df["Experiment state"] == 'Passive'),
-                "Phase"
-            ] = "Transition"
-            data_df.loc[data_df["Phase"] == "N/A", "Phase"] = "post-stim"
+    data_df = mark_phases(data_df,fp_protocol)
 
     return data_df
 
