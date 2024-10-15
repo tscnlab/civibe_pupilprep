@@ -97,26 +97,24 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
         ] = "pre-stim"
 
         if seq_id == 1:
-            data_df.loc[data_df["Phase"] == "N/A", "Phase"] = "Adaptation"
+            data_df.loc[(data_df["Sequence index"] == seq_id) & (data_df["Phase"] == "N/A"), "Phase"] = "Adaptation"
         else:
-            data_df.loc[
-                (data_df["Sequence index"] == seq_id)
-                & (data_df["Excitation label - Left"] != "baseline")
-                & (data_df["Excitation label - Left"] != np.nan)
-                & (data_df["Excitation label - Left"] != "dark"),
-                "Phase",
-            ] = "stim"
-            data_df.loc[
-                (data_df["Sequence index"] == seq_id)
-                & (data_df["Excitation label - Right"] != "baseline")
-                & (data_df["Excitation label - Right"] != np.nan)
-                & (data_df["Excitation label - Right"] != "dark"),
-                "Phase",
-            ] = "stim"
+            if "left" in fp_protocol:
+                data_df.loc[
+                    (data_df["Sequence index"] == seq_id)
+                    & (data_df["Excitation label - Left"] != 'baseline'),
+                    "Phase"
+                ] = "stim"
+            else:
+                data_df.loc[
+                    (data_df["Sequence index"] == seq_id)
+                    & (data_df["Excitation label - Right"] != 'baseline'),
+                    "Phase"
+                ] = "stim"
             data_df.loc[
                 (data_df["Sequence index"] == seq_id)
                 & (data_df["Experiment state"] == 'Passive'),
-                "Phase",
+                "Phase"
             ] = "Transition"
             data_df.loc[data_df["Phase"] == "N/A", "Phase"] = "post-stim"
 
