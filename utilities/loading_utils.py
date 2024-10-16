@@ -36,6 +36,14 @@ def make_filepaths(rootdir: str):
     return fp_protocol, fp_recording, fp_whole_exp
 
 def mark_phases(data_df,fp_protocol):
+    '''
+    Function for marking phases in the experiment.
+    Input:
+    data_df - dataframe with experiment data from one recording of one participant
+    fp_protocol - filepath to protocol file for the recording
+    Returns:
+    data_df - dataframe from input with an added column 'Phase' with positions: Adaptation, pre-stim, stim, post-stim and Transition
+    '''
     data_df["Phase"] = ["N/A"] * len(data_df)
 
     for seq_id in data_df["Sequence index"].unique():
@@ -140,12 +148,26 @@ def make_concat_df(fp_recording: list, fp_protocol: str):
     concat_df["Eye"] = [
         "L" if "left" in fp_protocol else "R" for i in range(len(concat_df))
     ]
+    concat_df = mark_phases(concat_df,fp_protocol)
     return concat_df
 
 
 def load_participant_data(
-    participant_no: int, data_dir: str, include_failed=False, save=True
+    participant_no: int, data_dir: str, include_failed=False, save=True, save_path = './results/'
 ):
+    '''
+    Function for loading all recorded data from one participant.
+    Input:
+    participant_no - int, index of the participant
+    data_dir - string, path to directory with participant folders, with directory scheme data_dir/participant_no/03_expsession/retinawise
+    include_failed - bool, whether to include the failed runs, if True: they are included, default: False
+    save - bool, whether to save the created dataframes, if True, dataframes are saved to folder specified in save_path, default: True
+    save_path - string, path to directory for saving the dataframes, default: './results/'
+    Returns:
+    data_df - DataFrame, includes full recording data with added columns 'Session id' and 'Participant id' 
+    protocol_timecourse_df - DataFrame, includes timecourse protocol data with added columns 'Session id' and 'Participant id' 
+    protocol_vars_df - DataFrame, includes protocol variables with added columns 'Session id' and 'Participant id'
+    '''
     participant_dir = os.path.join(
         data_dir, str(participant_no), "03_expsession\\retinawise"
     )
@@ -162,8 +184,11 @@ def load_participant_data(
                 )
                 exp_df = make_whole_exp_df(fp_whole_exp, fp_protocol)
                 protocol_vars_df["Session id"] = [i] * len(protocol_vars_df)
+                protocol_vars_df["Participant id"] = [participant_no] * len(protocol_vars_df)
                 protocol_timecourse_df["Session id"] = [i] * len(protocol_timecourse_df)
+                protocol_timecourse_df["Participant id"] = [participant_no] * len(protocol_timecourse_df)
                 exp_df["Session id"] = [i] * len(exp_df)
+                exp_df["Participant id"] = [participant_no] * len(exp_df)
                 protocol_vars_list.append(protocol_vars_df)
                 protocol_timecourse_list.append(protocol_timecourse_df)
                 exp_list.append(exp_df)
@@ -175,10 +200,11 @@ def load_participant_data(
                     )
                     exp_df = make_whole_exp_df(fp_whole_exp, fp_protocol)
                     protocol_vars_df["Session id"] = [i] * len(protocol_vars_df)
-                    protocol_timecourse_df["Session id"] = [i] * len(
-                        protocol_timecourse_df
-                    )
+                    protocol_vars_df["Participant id"] = [participant_no] * len(protocol_vars_df)
+                    protocol_timecourse_df["Session id"] = [i] * len(protocol_timecourse_df)
+                    protocol_timecourse_df["Participant id"] = [participant_no] * len(protocol_timecourse_df)
                     exp_df["Session id"] = [i] * len(exp_df)
+                    exp_df["Participant id"] = [participant_no] * len(exp_df)
                     protocol_vars_list.append(protocol_vars_df)
                     protocol_timecourse_list.append(protocol_timecourse_df)
                     exp_list.append(exp_df)
@@ -190,12 +216,12 @@ def load_participant_data(
     protocol_vars_df = pd.concat(protocol_vars_list)
     protocol_timecourse_df = pd.concat(protocol_timecourse_list)
     if save:
-        data_df.to_csv(".\\results\\" + str(participant_no) + "_full_data.csv")
+        data_df.to_csv(save_path + str(participant_no) + "_recording_data.csv")
         protocol_timecourse_df.to_csv(
-            ".\\results\\" + str(participant_no) + "_protocol_timecourse_data.csv"
+            save_path + str(participant_no) + "_protocol_timecourse_data.csv"
         )
         protocol_vars_df.to_csv(
-            ".\\results\\" + str(participant_no) + "_protocol_vars_data.csv"
+            save_path + str(participant_no) + "_protocol_vars_data.csv"
         )
     return data_df, protocol_timecourse_df, protocol_vars_df
 
