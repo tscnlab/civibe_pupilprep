@@ -35,15 +35,16 @@ def make_filepaths(rootdir: str):
 
     return fp_protocol, fp_recording, fp_whole_exp
 
-def mark_phases(data_df,fp_protocol):
-    '''
+
+def mark_phases(data_df, fp_protocol):
+    """
     Function for marking phases in the experiment.
     Input:
     data_df - dataframe with experiment data from one recording of one participant
     fp_protocol - filepath to protocol file for the recording
     Returns:
     data_df - dataframe from input with an added column 'Phase' with positions: Adaptation, pre-stim, stim, post-stim and Transition
-    '''
+    """
     data_df["Phase"] = ["N/A"] * len(data_df)
 
     for seq_id in data_df["Sequence index"].unique():
@@ -59,28 +60,30 @@ def mark_phases(data_df,fp_protocol):
         ] = "pre-stim"
 
         if seq_id == 1:
-            data_df.loc[(data_df["Sequence index"] == seq_id) & (data_df["Phase"] == "N/A"), "Phase"] = "Adaptation"
+            data_df.loc[
+                (data_df["Sequence index"] == seq_id) & (data_df["Phase"] == "N/A"),
+                "Phase",
+            ] = "Adaptation"
         else:
             if "left" in fp_protocol:
                 data_df.loc[
                     (data_df["Sequence index"] == seq_id)
-                    & (data_df["Excitation label - Left"] != 'baseline'),
-                    "Phase"
+                    & (data_df["Excitation label - Left"] != "baseline"),
+                    "Phase",
                 ] = "stim"
             else:
                 data_df.loc[
                     (data_df["Sequence index"] == seq_id)
-                    & (data_df["Excitation label - Right"] != 'baseline'),
-                    "Phase"
+                    & (data_df["Excitation label - Right"] != "baseline"),
+                    "Phase",
                 ] = "stim"
             data_df.loc[
                 (data_df["Sequence index"] == seq_id)
-                & (data_df["Experiment state"] == 'Passive'),
-                "Phase"
+                & (data_df["Experiment state"] == "Passive"),
+                "Phase",
             ] = "Transition"
             data_df.loc[data_df["Phase"] == "N/A", "Phase"] = "post-stim"
     return data_df
-
 
 
 def make_protocol_dfs(fp_protocol: str):
@@ -129,7 +132,7 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
     data_df["Eye"] = [
         "L" if "left" in fp_protocol else "R" for i in range(len(data_df))
     ]
-    data_df = mark_phases(data_df,fp_protocol)
+    data_df = mark_phases(data_df, fp_protocol)
 
     return data_df
 
@@ -148,14 +151,18 @@ def make_concat_df(fp_recording: list, fp_protocol: str):
     concat_df["Eye"] = [
         "L" if "left" in fp_protocol else "R" for i in range(len(concat_df))
     ]
-    concat_df = mark_phases(concat_df,fp_protocol)
+    concat_df = mark_phases(concat_df, fp_protocol)
     return concat_df
 
 
 def load_participant_data(
-    participant_no: int, data_dir: str, include_failed=False, save=True, save_path = './results/'
+    participant_no: int,
+    data_dir: str,
+    include_failed=False,
+    save=True,
+    save_path="./results/",
 ):
-    '''
+    """
     Function for loading all recorded data from one participant.
     Input:
     participant_no - int, index of the participant
@@ -164,10 +171,10 @@ def load_participant_data(
     save - bool, whether to save the created dataframes, if True, dataframes are saved to folder specified in save_path, default: True
     save_path - string, path to directory for saving the dataframes, default: './results/'
     Returns:
-    data_df - DataFrame, includes full recording data with added columns 'Session id' and 'Participant id' 
-    protocol_timecourse_df - DataFrame, includes timecourse protocol data with added columns 'Session id' and 'Participant id' 
+    data_df - DataFrame, includes full recording data with added columns 'Session id' and 'Participant id'
+    protocol_timecourse_df - DataFrame, includes timecourse protocol data with added columns 'Session id' and 'Participant id'
     protocol_vars_df - DataFrame, includes protocol variables with added columns 'Session id' and 'Participant id'
-    '''
+    """
     participant_dir = os.path.join(
         data_dir, str(participant_no), "03_expsession\\retinawise"
     )
@@ -184,9 +191,13 @@ def load_participant_data(
                 )
                 exp_df = make_whole_exp_df(fp_whole_exp, fp_protocol)
                 protocol_vars_df["Session id"] = [i] * len(protocol_vars_df)
-                protocol_vars_df["Participant id"] = [participant_no] * len(protocol_vars_df)
+                protocol_vars_df["Participant id"] = [participant_no] * len(
+                    protocol_vars_df
+                )
                 protocol_timecourse_df["Session id"] = [i] * len(protocol_timecourse_df)
-                protocol_timecourse_df["Participant id"] = [participant_no] * len(protocol_timecourse_df)
+                protocol_timecourse_df["Participant id"] = [participant_no] * len(
+                    protocol_timecourse_df
+                )
                 exp_df["Session id"] = [i] * len(exp_df)
                 exp_df["Participant id"] = [participant_no] * len(exp_df)
                 protocol_vars_list.append(protocol_vars_df)
@@ -200,9 +211,15 @@ def load_participant_data(
                     )
                     exp_df = make_whole_exp_df(fp_whole_exp, fp_protocol)
                     protocol_vars_df["Session id"] = [i] * len(protocol_vars_df)
-                    protocol_vars_df["Participant id"] = [participant_no] * len(protocol_vars_df)
-                    protocol_timecourse_df["Session id"] = [i] * len(protocol_timecourse_df)
-                    protocol_timecourse_df["Participant id"] = [participant_no] * len(protocol_timecourse_df)
+                    protocol_vars_df["Participant id"] = [participant_no] * len(
+                        protocol_vars_df
+                    )
+                    protocol_timecourse_df["Session id"] = [i] * len(
+                        protocol_timecourse_df
+                    )
+                    protocol_timecourse_df["Participant id"] = [participant_no] * len(
+                        protocol_timecourse_df
+                    )
                     exp_df["Session id"] = [i] * len(exp_df)
                     exp_df["Participant id"] = [participant_no] * len(exp_df)
                     protocol_vars_list.append(protocol_vars_df)
