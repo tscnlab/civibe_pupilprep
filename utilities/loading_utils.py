@@ -1,6 +1,5 @@
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import os
 
 
@@ -91,8 +90,8 @@ def make_protocol_dfs(fp_protocol: str):
     Function for making protocol information dataframes
     fp_protocol - string, path to csv file with protocol data
     Returns:
-    protocol_vars_df - DataFrame, includes the first lines with static protocol information plus information on dominant eye
-    protocol_timecourse_df - DataFrame, includes the timecourse of the protocol data, with added 'Eye' column - dominant eye L or R
+    protocol_vars_df - DataFrame, includes the first lines with static protocol information plus information on stimulated eye
+    protocol_timecourse_df - DataFrame, includes the timecourse of the protocol data, with added 'Eye' column - stimulated eye L or R
     """
     protocol_vars_df = pd.read_csv(
         fp_protocol,
@@ -109,12 +108,12 @@ def make_protocol_dfs(fp_protocol: str):
         protocol_timecourse_df["Eye"] = [
             "L" for i in range(len(protocol_timecourse_df))
         ]
-        protocol_vars_df.loc[len(protocol_vars_df)] = ["Dominant eye", "L", np.nan]
+        protocol_vars_df.loc[len(protocol_vars_df)] = ["Stimulated eye", "L", np.nan]
     else:
         protocol_timecourse_df["Eye"] = [
             "R" for i in range(len(protocol_timecourse_df))
         ]
-        protocol_vars_df.loc[len(protocol_vars_df)] = ["Dominant eye", "R", np.nan]
+        protocol_vars_df.loc[len(protocol_vars_df)] = ["Stimulated eye", "R", np.nan]
 
     return protocol_vars_df, protocol_timecourse_df
 
@@ -125,7 +124,7 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
     fp_whole_exp - string, path to csv file with whole test data
     fp_protocol - string, path to csv with protocol data (for eye information)
     Returns:
-    data_df - DataFrame with data from the whole test recording, with an added column 'Eye' - dominant eye L or R
+    data_df - DataFrame with data from the whole test recording, with an added column 'Eye' - L or R
     """
 
     data_df = pd.read_csv(fp_whole_exp, delimiter=";")
