@@ -37,7 +37,7 @@ def make_filepaths(rootdir: str):
 
 def mark_phases(data_df, fp_protocol):
     """
-    Function for marking phases in the experiment.
+    Function for marking phases in the experiment, separately marking transition phases with passive state.
     Input:
     data_df - dataframe with experiment data from one recording of one participant
     fp_protocol - filepath to protocol file for the recording
@@ -82,6 +82,113 @@ def mark_phases(data_df, fp_protocol):
                 "Phase",
             ] = "Transition"
             data_df.loc[data_df["Phase"] == "N/A", "Phase"] = "post-stim"
+    return data_df
+
+def mark_trials(data_df):
+    """
+    Function for marking phases in the experiment.
+    Input:
+    data_df - dataframe with all pupillometry data from one participant, needs to have the column 'Eye' for stimulated eye and 'Session id' for marking separate recordings
+    
+    Returns:
+    data_df - dataframe from input with added columns Trial phase (Adaptation, pre-stim, stim, post-stim), Trial type (type of stimulation), Trial no (from 1::, excludes adaptation), Trial time Sec (from ca. -1 s to end of trial), Stim eye - Size Mm
+    """
+    data_df["Trial phase"] = ["N/A"] * len(data_df)
+    data_df["Trial type"] = ["N/A"] * len(data_df)
+    data_df["Trial no"] = ["N/A"] * len(data_df)
+    data_df["Trial time Sec"] = ["N/A"] * len(data_df)
+    data_df['Stim eye - Size Mm']=["N/A"] * len(data_df)
+   
+    trial_number = 1
+    for session_id in data_df['Session id'].unique():
+        eye = data_df['Eye'][data_df['Session id']==session_id].unique()[0] #stimulated eye in the session
+        for seq_id in sorted(data_df["Sequence index"][data_df['Session id']==session_id].unique())[1::]: 
+            if eye=='L': #block for marking stimulation phase
+                data_df.loc[
+                    (data_df["Session id"] == session_id)
+                    &(data_df["Sequence index"] == seq_id)
+                    & (data_df["Excitation label - Left"] != "baseline")
+                    & (data_df["Excitation label - Left"].notna()),
+                    "Trial phase",
+                ] = "stim"
+            else:
+                data_df.loc[
+                    (data_df["Session id"] == session_id)
+                    &(data_df["Sequence index"] == seq_id)
+                    & (data_df["Excitation label - Right"] != "baseline")
+                    & (data_df["Excitation label - Right"].notna()),
+                    "Trial phase",
+                ] = "stim"
+                
+            if eye =='L': #block for extracting stimulation type in the sequence
+                stim = data_df['Excitation label - Left'][(data_df['Sequence index'] == seq_id)
+                                                          &(data_df['Session id'] == session_id) 
+                                                          &(data_df['Trial phase']=='stim')].unique()[0]
+            else:
+                stim = data_df['Excitation label - Right'][(data_df['Sequence index'] == seq_id)
+                                                          &(data_df['Session id'] == session_id) 
+                                                          &(data_df['Trial phase']=='stim')].unique()[0]
+            
+            #block for extracting stim start time and sequence end time in 'whole experiment' time ticks
+            seq_start_time = data_df["Sequence time Sec"][
+                (data_df["Session id"] == session_id)
+                & (data_df["Sequence index"] == seq_id)
+            ].min()
+            seq_end_time = data_df["Overall time Sec"][
+                (data_df["Session id"] == session_id)
+                & (data_df["Sequence index"] == seq_id)
+            ].max()
+            stim_start_time = data_df["Overall time Sec"][
+                (data_df["Session id"] == session_id)
+                & (data_df["Sequence index"] == seq_id)
+                & (data_df["Sequence time Sec"] == seq_start_time)
+            ].min()
+
+            data_df.loc[
+                (data_df["Session id"] == session_id)
+                & (data_df["Overall time Sec"] >= stim_start_time - 1)
+                & (data_df["Overall time Sec"] < stim_start_time),
+                "Trial phase",
+            ] = "pre-stim" #-1 s from stimulation start time
+            
+            data_df.loc[
+                (data_df["Session id"] == session_id)
+                & (data_df["Overall time Sec"] >= stim_start_time - 1)
+                & (data_df["Overall time Sec"] <= seq_end_time),
+                "Trial type",
+            ] = stim #marks the whole trial type
+            
+            
+            data_df.loc[
+                (data_df["Session id"] == session_id)
+                & (data_df["Overall time Sec"] >= stim_start_time - 1)
+                & (data_df["Overall time Sec"] <= seq_end_time),
+                "Trial no",
+            ] = trial_number #marks the trial number in the whole data
+            trial_number+=1
+
+            data_df.loc[
+                (data_df["Session id"] == session_id)
+                & (data_df["Overall time Sec"] >= stim_start_time - 1)
+                & (data_df["Overall time Sec"] <= seq_end_time),
+                "Trial time Sec",
+            ] = data_df.loc[
+                (data_df["Session id"] == session_id)
+                & (data_df["Overall time Sec"] >= stim_start_time - 1)
+                & (data_df["Overall time Sec"] <= seq_end_time),
+                "Overall time Sec",
+            ]-stim_start_time #marks trial time ticks adjusted to stimulation start time, so that stim starts at 0 and trial starts at -1
+            
+            
+        data_df.loc[
+                (data_df["Sequence index"] == 1) & (data_df["Trial phase"] == "N/A"),
+                "Trial phase",
+            ] = "Adaptation" #marks adaptation phase in sequence 1
+        data_df.loc[(data_df["Session id"] == session_id) & (data_df["Trial phase"] == "N/A"), "Trial phase"] = "post-stim" #marks remaining 'N/A' phases as post-stim
+        data_df.loc[(data_df["Session id"] == session_id) & (data_df["Trial no"]=='N/A') & (data_df["Experiment state"]=='Passive'), "Trial phase"] = "Transition"
+    
+    data_df.loc[data_df['Eye']=='L','Stim eye - Size Mm'] = data_df['Left - Size Mm']
+    data_df.loc[data_df['Eye']=='R','Stim eye - Size Mm'] = data_df['Right - Size Mm']
     return data_df
 
 
@@ -131,7 +238,6 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
     data_df["Eye"] = [
         "L" if "left" in fp_protocol else "R" for i in range(len(data_df))
     ]
-    data_df = mark_phases(data_df, fp_protocol)
 
     return data_df
 
@@ -150,7 +256,7 @@ def make_concat_df(fp_recording: list, fp_protocol: str):
     concat_df["Eye"] = [
         "L" if "left" in fp_protocol else "R" for i in range(len(concat_df))
     ]
-    concat_df = mark_phases(concat_df, fp_protocol)
+    
     return concat_df
 
 
@@ -170,7 +276,7 @@ def load_participant_data(
     save - bool, whether to save the created dataframes, if True, dataframes are saved to folder specified in save_path, default: True
     save_path - string, path to directory for saving the dataframes, default: './results/'
     Returns:
-    data_df - DataFrame, includes full recording data with added columns 'Session id' and 'Participant id'
+    data_df - DataFrame, includes full participant pupillometry data with added columns 'Session id' and 'Participant id', as well as marked trials as decribed in mark_trials function
     protocol_timecourse_df - DataFrame, includes timecourse protocol data with added columns 'Session id' and 'Participant id'
     protocol_vars_df - DataFrame, includes protocol variables with added columns 'Session id' and 'Participant id'
     """
@@ -229,6 +335,7 @@ def load_participant_data(
         else:
             continue
     data_df = pd.concat(exp_list)
+    data_df=mark_trials(data_df)
     protocol_vars_df = pd.concat(protocol_vars_list)
     protocol_timecourse_df = pd.concat(protocol_timecourse_list)
     if save:
