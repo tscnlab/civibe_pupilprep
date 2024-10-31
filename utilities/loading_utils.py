@@ -34,57 +34,6 @@ def make_filepaths(rootdir: str):
 
     return fp_protocol, fp_recording, fp_whole_exp
 
-
-def mark_phases(data_df, fp_protocol):
-    """
-    NOW OBSOLETE: look at 'mark_trials' for more precise trial segmentation
-    Function for marking phases in the experiment, separately marking transition phases with passive state.
-    Input:
-    data_df - dataframe with experiment data from one recording of one participant
-    fp_protocol - filepath to protocol file for the recording
-    Returns:
-    data_df - dataframe from input with an added column 'Phase' with positions: Adaptation, pre-stim, stim, post-stim and Transition
-    """
-    data_df["Phase"] = ["N/A"] * len(data_df)
-
-    for seq_id in data_df["Sequence index"].unique():
-
-        seq_length = data_df["Sequence time Sec"][
-            data_df["Sequence index"] == seq_id
-        ].max()
-
-        data_df.loc[
-            (data_df["Sequence index"] == seq_id)
-            & (data_df["Sequence time Sec"] >= seq_length - 1),
-            "Phase",
-        ] = "pre-stim"
-
-        if seq_id == 1:
-            data_df.loc[
-                (data_df["Sequence index"] == seq_id) & (data_df["Phase"] == "N/A"),
-                "Phase",
-            ] = "Adaptation"
-        else:
-            if "left" in fp_protocol:
-                data_df.loc[
-                    (data_df["Sequence index"] == seq_id)
-                    & (data_df["Excitation label - Left"] != "baseline"),
-                    "Phase",
-                ] = "stim"
-            else:
-                data_df.loc[
-                    (data_df["Sequence index"] == seq_id)
-                    & (data_df["Excitation label - Right"] != "baseline"),
-                    "Phase",
-                ] = "stim"
-            data_df.loc[
-                (data_df["Sequence index"] == seq_id)
-                & (data_df["Experiment state"] == "Passive"),
-                "Phase",
-            ] = "Transition"
-            data_df.loc[data_df["Phase"] == "N/A", "Phase"] = "post-stim"
-    return data_df
-
 def mark_trials(data_df):
     """
     Function for marking phases in the experiment.
@@ -96,9 +45,9 @@ def mark_trials(data_df):
     """
     data_df["Trial phase"] = ["N/A"] * len(data_df)
     data_df["Trial type"] = ["N/A"] * len(data_df)
-    data_df["Trial no"] = ["N/A"] * len(data_df)
-    data_df["Trial time Sec"] = ["N/A"] * len(data_df)
-    data_df['Stim eye - Size Mm']=["N/A"] * len(data_df)
+    data_df["Trial no"] = [pd.NA] * len(data_df)
+    data_df["Trial time Sec"] = [pd.NA] * len(data_df)
+    data_df['Stim eye - Size Mm']=[pd.NA] * len(data_df)
    
     trial_number = 1
     for session_id in data_df['Recording id'].unique():
@@ -186,7 +135,7 @@ def mark_trials(data_df):
                 "Trial phase",
             ] = "Adaptation" #marks adaptation phase in sequence 1
         data_df.loc[(data_df["Recording id"] == session_id) & (data_df["Trial phase"] == "N/A"), "Trial phase"] = "post-stim" #marks remaining 'N/A' phases as post-stim
-        data_df.loc[(data_df["Recording id"] == session_id) & (data_df["Trial no"]=='N/A') & (data_df["Experiment state"]=='Passive'), "Trial phase"] = "Transition"
+        data_df.loc[(data_df["Recording id"] == session_id) & (data_df["Trial no"].isna()) & (data_df["Experiment state"]=='Passive'), "Trial phase"] = "Transition"
     
     data_df.loc[data_df['Eye']=='L','Stim eye - Size Mm'] = data_df['Left - Size Mm']
     data_df.loc[data_df['Eye']=='R','Stim eye - Size Mm'] = data_df['Right - Size Mm']
@@ -242,7 +191,7 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
     data_df["Filepath"] = [
         fp_whole_exp for i in range(len(data_df))
     ]
-
+    
     return data_df
 
 
@@ -290,7 +239,7 @@ def load_participant_data(
     protocol_vars_list = []
     protocol_timecourse_list = []
     exp_list = []
-    for i, dir in enumerate(os.listdir(participant_dir)):
+    for i, dir in enumerate(sorted(os.listdir(participant_dir))):
         rootdir = os.path.join(participant_dir, dir)
         if "test" not in rootdir:
             if include_failed:
@@ -314,13 +263,26 @@ def load_participant_data(
                 exp_list.append(exp_df)
             else:
                 if "failed" not in rootdir:
+                         
                     fp_protocol, fp_recording, fp_whole_exp = make_filepaths(rootdir)
                     protocol_vars_df, protocol_timecourse_df = make_protocol_dfs(
                         fp_protocol
                     )
                     exp_df = make_whole_exp_df(fp_whole_exp, fp_protocol)
+                    
+                    if ('10a' in rootdir) or ('10b' in rootdir):
+                        block = 10
+                        test = rootdir[-1]
+                    else:
+                        block = int(rootdir[-2])
+                        test = rootdir[-1]
+                        
                     protocol_vars_df["Recording id"] = [i] * len(protocol_vars_df)
                     protocol_vars_df["Participant id"] = [participant_no] * len(
+                        protocol_vars_df
+                    )
+                    protocol_vars_df["Block"] = [block] * len(protocol_vars_df)
+                    protocol_vars_df["Test"] = [test] * len(
                         protocol_vars_df
                     )
                     protocol_timecourse_df["Recording id"] = [i] * len(
@@ -329,8 +291,17 @@ def load_participant_data(
                     protocol_timecourse_df["Participant id"] = [participant_no] * len(
                         protocol_timecourse_df
                     )
+                    protocol_timecourse_df["Block"] = [block] * len(
+                        protocol_timecourse_df
+                    )
+                    protocol_timecourse_df["Test"] = [test] * len(
+                        protocol_timecourse_df
+                    )
+                    
                     exp_df["Recording id"] = [i] * len(exp_df)
                     exp_df["Participant id"] = [participant_no] * len(exp_df)
+                    exp_df["Block"] = [block] * len(exp_df)
+                    exp_df["Test"] = [test] * len(exp_df)
                     protocol_vars_list.append(protocol_vars_df)
                     protocol_timecourse_list.append(protocol_timecourse_df)
                     exp_list.append(exp_df)
@@ -339,6 +310,7 @@ def load_participant_data(
         else:
             continue
     data_df = pd.concat(exp_list)
+    data_df.reset_index(inplace=True)
     data_df=mark_trials(data_df)
     protocol_vars_df = pd.concat(protocol_vars_list)
     protocol_timecourse_df = pd.concat(protocol_timecourse_list)
