@@ -13,12 +13,15 @@ pip install -r requirements.txt
 ## Notebook tags explanation
 
 load_ - notebooks relating to loading the data from raw data
+
 prep_ - notebooks relating to data preprocessing
+
 eda_ - notebooks including exploratory data analysis
 
 ## Utilities explanation
 
 loading_utils - utilities relating to loading and marking data from raw files
+
 data_utils - utilities relating to preprocessing and plotting data from dataframes created with loading_utils
 
 ## Example: load and resample data (see load_ notebooks)
