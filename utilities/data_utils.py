@@ -4,6 +4,90 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
+def resample_by_trial(data_df):
+    # take subset of data without transition and adaptation parts
+    data_subset = data_df[
+        (data_df["Trial phase"] != "Adaptation")
+        & (data_df["Trial phase"] != "Transition")
+    ]
+
+    # map trial-relevant variables to trial numbers for trial marking after resampling
+    trial_list = sorted(data_subset["Trial no"].unique())
+    stim_list = [
+        data_subset["Trial type"][data_subset["Trial no"] == i].unique()[0]
+        for i in trial_list
+    ]
+    block_list = [
+        data_subset["Block"][data_subset["Trial no"] == i].unique()[0]
+        for i in trial_list
+    ]
+    test_list = [
+        data_subset["Test"][data_subset["Trial no"] == i].unique()[0]
+        for i in trial_list
+    ]
+    recording_list = [
+        data_subset["Recording id"][data_subset["Trial no"] == i].unique()[0]
+        for i in trial_list
+    ]
+    eye_list = [
+        data_subset["Eye"][data_subset["Trial no"] == i].unique()[0] for i in trial_list
+    ]
+    participant = data_subset["Participant id"].unique()[0]
+
+    # make datetime index for resampling
+    data_subset["Trial time datetime"] = data_subset["Trial time Sec"].apply(
+        lambda x: datetime.timedelta(seconds=x)
+    )
+    data_subset.set_index("Trial time datetime", inplace=True)
+
+    # resample by trial and create a new dataframe
+    trials_for_new_df = []
+    for i, trial_no in enumerate(trial_list):
+
+        trial = data_subset[["Trial time Sec", "Stim eye - Size Mm"]][
+            data_subset["Trial no"] == trial_no
+        ].copy()
+        trial.loc[datetime.timedelta(seconds=-1)] = (
+            pd.Series()
+        )  # add a row at -1s so that every trial has the same time ticks
+
+        resampled_trial = trial.resample("20ms").agg({"Stim eye - Size Mm": "mean"})
+
+        # remake trial time column in seconds from new index
+        resampled_trial["Trial time Sec"] = resampled_trial.index
+        resampled_trial["Trial time Sec"] = resampled_trial["Trial time Sec"].apply(
+            lambda x: x.total_seconds()
+        )
+
+        # mark trial based on mappings
+        resampled_trial["Trial no"] = [trial_no] * len(resampled_trial)
+        resampled_trial["Trial type"] = [stim_list[i]] * len(resampled_trial)
+        resampled_trial["Block"] = [block_list[i]] * len(resampled_trial)
+        resampled_trial["Test"] = [test_list[i]] * len(resampled_trial)
+        resampled_trial["Recording id"] = [recording_list[i]] * len(resampled_trial)
+        resampled_trial["Eye"] = [eye_list[i]] * len(resampled_trial)
+        resampled_trial["Participant id"] = [participant] * len(resampled_trial)
+
+        # mark trial phases based on protocol
+        resampled_trial["Trial phase"] = ["N/A"] * len(resampled_trial)
+        resampled_trial.loc[resampled_trial["Trial time Sec"] < 0, "Trial phase"] = (
+            "pre-stim"
+        )
+        resampled_trial.loc[
+            (resampled_trial["Trial time Sec"] >= 0)
+            & (resampled_trial["Trial time Sec"] <= 5),
+            "Trial phase",
+        ] = "stim"
+        resampled_trial.loc[resampled_trial["Trial time Sec"] > 5, "Trial phase"] = (
+            "post-stim"
+        )
+        trials_for_new_df.append(resampled_trial)
+
+    new_df = pd.concat(trials_for_new_df)
+    new_df.reset_index(inplace=True)
+    return new_df
+
+
 def calculate_change_from_baseline(data_df):
     data_df["Baseline change %"] = [pd.NA] * len(data_df)
     for i in data_df["Trial no"][data_df["Trial no"].notna()].unique():
