@@ -5,7 +5,7 @@ import seaborn as sns
 
 def calculate_change_from_baseline(data_df):
     data_df['Baseline change %'] = [pd.NA]*len(data_df)
-    for i in data_df['Trial no'].unique()[1::]:
+    for i in data_df['Trial no'][data_df['Trial no'].notna()].unique():
         trial_df = data_df[(data_df['Trial no']==i)].copy()
         baseline = trial_df['Stim eye - Size Mm'][trial_df['Trial time Sec']<0].mean()
         data_df.loc[(data_df['Trial no']==i),'Baseline change %'] = (trial_df['Stim eye - Size Mm'] - baseline)*100/baseline
