@@ -2,10 +2,19 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+import datetime
 
+def mark_not_measured(data_df):
+    data_df['Stim eye - Measured'] = [False]*len(data_df)
+    data_df.loc[ data_df['Stim eye - Size Mm'].notna(),'Stim eye - Measured'] = True
+    data_df.loc[(data_df['Right - Size Mm'].isna())&(data_df['Left - Size Mm'].isna()),'Stim eye - Measured'] = 'missing'
+    return data_df
 
-def resample_by_trial(data_df):
-    # take subset of data without transition and adaptation parts
+def resample_by_trial(data_df,sample_freq = 50):
+    # get time step in ms from sampling frequency provided
+    time_step = 1000/sample_freq
+    
+    # take subset of data without transition and adaptation parts 
     data_subset = data_df[
         (data_df["Trial phase"] != "Adaptation")
         & (data_df["Trial phase"] != "Transition")
@@ -51,8 +60,9 @@ def resample_by_trial(data_df):
             pd.Series()
         )  # add a row at -1s so that every trial has the same time ticks
 
-        resampled_trial = trial.resample("20ms").agg({"Stim eye - Size Mm": "mean"})
-
+        resampled_trial = trial.resample(str(time_step)+'ms').agg({"Stim eye - Size Mm": "mean"})
+        # cut trial to 18 s
+        resampled_trial=resampled_trial[datetime.timedelta(seconds=-1):datetime.timedelta(seconds=18)]
         # remake trial time column in seconds from new index
         resampled_trial["Trial time Sec"] = resampled_trial.index
         resampled_trial["Trial time Sec"] = resampled_trial["Trial time Sec"].apply(
