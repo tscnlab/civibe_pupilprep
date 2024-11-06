@@ -24,7 +24,7 @@ loading_utils - utilities relating to loading and marking data from raw files
 
 data_utils - utilities relating to preprocessing and plotting data from dataframes created with loading_utils
 
-## Example: load and resample data (see load_ notebooks)
+## Example: load and resample data to 50 Hz (see load_ notebooks)
 
 ```python
 import sys
@@ -37,6 +37,7 @@ import loading_utils
 import data_utils
 import pandas as pd
 import numpy as np
+import datetime
 
 # make full dataframe for one participant, don't include failed runs, don't save
 
@@ -46,7 +47,7 @@ data_df, protocol_timecourse_df, protocol_vars_df = loading_utils.load_participa
 
 # make a new df with resampled trials and reduced columns, retaining block information
 
-resampled_df = data_utils.resample_by_trial(data_df)
+resampled_df = data_utils.resample_by_trial(data_df,sample_freq=50)
 
 
 ```
