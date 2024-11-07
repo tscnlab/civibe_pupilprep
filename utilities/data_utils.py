@@ -12,7 +12,7 @@ def mark_not_measured(data_df):
 
 def resample_by_trial(data_df,sample_freq = 50):
     # get time step in ms from sampling frequency provided
-    time_step = int((1/sample_freq)*1e9)
+    time_step = np.ceil((1000/sample_freq)*1e6)
     
     # take subset of data without transition and adaptation parts 
     data_subset = data_df[
