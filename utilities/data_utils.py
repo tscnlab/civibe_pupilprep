@@ -12,7 +12,7 @@ def mark_not_measured(data_df):
 
 def resample_by_trial(data_df,sample_freq = 50):
     # get time step in ms from sampling frequency provided
-    time_step = 1000/sample_freq
+    time_step = np.ceil((1000/sample_freq)*1e6)
     
     # take subset of data without transition and adaptation parts 
     data_subset = data_df[
@@ -49,6 +49,9 @@ def resample_by_trial(data_df,sample_freq = 50):
     )
     data_subset.set_index("Trial time datetime", inplace=True)
 
+    # remove rows with NaN in stimulated eye pupil size
+    data_subset = data_subset[data_subset['Stim eye - Size Mm'].notna()]
+    
     # resample by trial and create a new dataframe
     trials_for_new_df = []
     for i, trial_no in enumerate(trial_list):
@@ -59,8 +62,10 @@ def resample_by_trial(data_df,sample_freq = 50):
         trial.loc[datetime.timedelta(seconds=-1)] = (
             pd.Series()
         )  # add a row at -1s so that every trial has the same time ticks
-
-        resampled_trial = trial.resample(str(time_step)+'ms').agg({"Stim eye - Size Mm": "mean"})
+        trial.loc[datetime.timedelta(seconds=18)] = (
+            pd.Series()
+        ) # just in case the trial is too short, add row at 18s
+        resampled_trial = trial.resample(str(time_step)+'ns').agg({"Stim eye - Size Mm": "mean"})
         # cut trial to 18 s
         resampled_trial=resampled_trial[datetime.timedelta(seconds=-1):datetime.timedelta(seconds=18)]
         # remake trial time column in seconds from new index
