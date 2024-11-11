@@ -4,11 +4,10 @@ import pandas as pd
 import numpy as np
 
 
-
 def plot_trials(data_df, participant_id, trial_types: list):
     fig, axs = plt.subplots(1, len(trial_types), figsize=(len(trial_types) * 5, 5))
     for i, trial_type in enumerate(trial_types):
-        axs[i].axvspan(0, 5, alpha=0.1, color="green",label='Stim phase')
+        axs[i].axvspan(0, 5, alpha=0.1, color="green", label="Stim phase")
         sns.scatterplot(
             ax=axs[i],
             data=data_df[data_df["Trial type"] == trial_type],
@@ -39,7 +38,7 @@ def plot_trials(data_df, participant_id, trial_types: list):
 def plot_baseline_change(data_df, participant_id, trial_types: list):
     fig, axs = plt.subplots(1, len(trial_types), figsize=(len(trial_types) * 5, 5))
     for i, trial_type in enumerate(trial_types):
-        axs[i].axvspan(0, 5, alpha=0.1, color="green",label='Stim phase')
+        axs[i].axvspan(0, 5, alpha=0.1, color="green", label="Stim phase")
         sns.scatterplot(
             ax=axs[i],
             data=data_df[data_df["Trial type"] == trial_type],

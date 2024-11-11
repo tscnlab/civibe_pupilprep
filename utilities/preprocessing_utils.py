@@ -3,11 +3,11 @@ import numpy as np
 import datetime
 
 
-def resample_by_trial(data_df,sample_freq = 50):
+def resample_by_trial(data_df, sample_freq=50):
     # get time step in ms from sampling frequency provided
-    time_step = np.ceil((1000/sample_freq)*1e6)
-    
-    # take subset of data without transition and adaptation parts 
+    time_step = np.ceil((1000 / sample_freq) * 1e6)
+
+    # take subset of data without transition and adaptation parts
     data_subset = data_df[
         (data_df["Trial phase"] != "Adaptation")
         & (data_df["Trial phase"] != "Transition")
@@ -43,8 +43,8 @@ def resample_by_trial(data_df,sample_freq = 50):
     data_subset.set_index("Trial time datetime", inplace=True)
 
     # remove rows with NaN in stimulated eye pupil size
-    data_subset = data_subset[data_subset['Stim eye - Size Mm'].notna()]
-    
+    data_subset = data_subset[data_subset["Stim eye - Size Mm"].notna()]
+
     # resample by trial and create a new dataframe
     trials_for_new_df = []
     for i, trial_no in enumerate(trial_list):
@@ -57,10 +57,14 @@ def resample_by_trial(data_df,sample_freq = 50):
         )  # add a row at -1s so that every trial has the same time ticks
         trial.loc[datetime.timedelta(seconds=18)] = (
             pd.Series()
-        ) # just in case the trial is too short, add row at 18s
-        resampled_trial = trial.resample(str(time_step)+'ns').agg({"Stim eye - Size Mm": "mean"})
+        )  # just in case the trial is too short, add row at 18s
+        resampled_trial = trial.resample(str(time_step) + "ns").agg(
+            {"Stim eye - Size Mm": "mean"}
+        )
         # cut trial to 18 s
-        resampled_trial=resampled_trial[datetime.timedelta(seconds=-1):datetime.timedelta(seconds=18)]
+        resampled_trial = resampled_trial[
+            datetime.timedelta(seconds=-1) : datetime.timedelta(seconds=18)
+        ]
         # remake trial time column in seconds from new index
         resampled_trial["Trial time Sec"] = resampled_trial.index
         resampled_trial["Trial time Sec"] = resampled_trial["Trial time Sec"].apply(
@@ -96,17 +100,23 @@ def resample_by_trial(data_df,sample_freq = 50):
     return new_df
 
 
-def remove_trials_below_percentage(resampled_df,baseline_threshold = 40,poi_threshold=75,baseline_time=[-1,0],poi_time=[0,6]):
-    
+def remove_trials_below_percentage(
+    resampled_df,
+    baseline_threshold=40,
+    poi_threshold=75,
+    baseline_time=[-1, 0],
+    poi_time=[0, 6],
+):
+
     resampled_df = resampled_df.copy()
-    
+
     # compute poi data percentage present in trials
-    poi_df = resampled_df[(resampled_df['Trial time Sec']>=poi_time[0])& 
-                          (resampled_df['Trial time Sec']<=poi_time[1])] 
+    poi_df = resampled_df[
+        (resampled_df["Trial time Sec"] >= poi_time[0])
+        & (resampled_df["Trial time Sec"] <= poi_time[1])
+    ]
     poi_groupby_df = (
-        poi_df[
-            ["Trial no", "Stim eye - Size Mm"]
-        ]
+        poi_df[["Trial no", "Stim eye - Size Mm"]]
         .groupby(["Trial no"])
         .agg(["count", "size"])
         .reset_index()
@@ -114,15 +124,15 @@ def remove_trials_below_percentage(resampled_df,baseline_threshold = 40,poi_thre
     poi_groupby_df[("Stim eye - Size Mm", "count/size ratio")] = (
         poi_groupby_df[("Stim eye - Size Mm", "count")]
         / poi_groupby_df[("Stim eye - Size Mm", "size")]
-    )*100
-    
+    ) * 100
+
     # compute baseline data percentage present in trials
-    baseline_df = resampled_df[(resampled_df['Trial time Sec']>=baseline_time[0])& 
-                               (resampled_df['Trial time Sec']<=baseline_time[1])] 
+    baseline_df = resampled_df[
+        (resampled_df["Trial time Sec"] >= baseline_time[0])
+        & (resampled_df["Trial time Sec"] <= baseline_time[1])
+    ]
     baseline_groupby_df = (
-        baseline_df[
-            ["Trial no", "Stim eye - Size Mm"]
-        ]
+        baseline_df[["Trial no", "Stim eye - Size Mm"]]
         .groupby(["Trial no"])
         .agg(["count", "size"])
         .reset_index()
@@ -130,40 +140,56 @@ def remove_trials_below_percentage(resampled_df,baseline_threshold = 40,poi_thre
     baseline_groupby_df[("Stim eye - Size Mm", "count/size ratio")] = (
         baseline_groupby_df[("Stim eye - Size Mm", "count")]
         / baseline_groupby_df[("Stim eye - Size Mm", "size")]
-    )*100
-        
-    
+    ) * 100
+
     # find trials matching poi condition and baseline condition
-    pois_above_threshold = (poi_groupby_df[("Stim eye - Size Mm", "count/size ratio")] >= poi_threshold)
-    baselines_above_threshold = (baseline_groupby_df[("Stim eye - Size Mm", "count/size ratio")] >= baseline_threshold)
-    trials_accepted_indices = (pois_above_threshold & baselines_above_threshold)
+    pois_above_threshold = (
+        poi_groupby_df[("Stim eye - Size Mm", "count/size ratio")] >= poi_threshold
+    )
+    baselines_above_threshold = (
+        baseline_groupby_df[("Stim eye - Size Mm", "count/size ratio")]
+        >= baseline_threshold
+    )
+    trials_accepted_indices = pois_above_threshold & baselines_above_threshold
     trials_accepted = poi_groupby_df[("Trial no", "")][trials_accepted_indices]
-    
+
     # select only found trials from original dataframe
-    removed_df = resampled_df[resampled_df['Trial no'].isin(trials_accepted)]
+    removed_df = resampled_df[resampled_df["Trial no"].isin(trials_accepted)]
     removed_df = removed_df.reset_index(drop=True)
-    
+
     return removed_df
 
 
-def remove_trials_with_long_nans(thresholded_df,fs=30,max_nan_length=500,poi_time=[0,6]):
+def remove_trials_with_long_nans(
+    thresholded_df, fs=30, max_nan_length=500, poi_time=[0, 6]
+):
     # select rows in the period of interest
-    data_df = thresholded_df[(thresholded_df['Trial time Sec']>=poi_time[0])& 
-                          (thresholded_df['Trial time Sec']<=poi_time[1])].copy()
-    
+    data_df = thresholded_df[
+        (thresholded_df["Trial time Sec"] >= poi_time[0])
+        & (thresholded_df["Trial time Sec"] <= poi_time[1])
+    ].copy()
+
     # mark NaN sequences in a counter (e.g. for sequence: 7,NaN,NaN,NaN,5 the counter is: 0,1,2,3,0)
-    data_df['NaN counter'] = pd.Series()
-    
-    for trial_no in sorted(data_df['Trial no'].unique()):
-        trial = data_df[data_df['Trial no']==trial_no]
-        trial_nan_counter = trial['Stim eye - Size Mm'].isnull().astype(int).groupby(trial['Stim eye - Size Mm'].notnull().astype(int).cumsum()).cumsum()
-        data_df.loc[data_df['Trial no']==trial_no,'NaN counter'] = trial_nan_counter
-    
+    data_df["NaN counter"] = pd.Series()
+
+    for trial_no in sorted(data_df["Trial no"].unique()):
+        trial = data_df[data_df["Trial no"] == trial_no]
+        trial_nan_counter = (
+            trial["Stim eye - Size Mm"]
+            .isnull()
+            .astype(int)
+            .groupby(trial["Stim eye - Size Mm"].notnull().astype(int).cumsum())
+            .cumsum()
+        )
+        data_df.loc[data_df["Trial no"] == trial_no, "NaN counter"] = trial_nan_counter
+
     # find trials in which counter exceeds max nan length in samples
-    trials_above_max = data_df['Trial no'][data_df['NaN counter']>(max_nan_length/fs)].unique()
-    
+    trials_above_max = data_df["Trial no"][
+        data_df["NaN counter"] > (max_nan_length / fs)
+    ].unique()
+
     # select trials without sequences exceeding the limit
-    removed_df = thresholded_df[~thresholded_df['Trial no'].isin(trials_above_max)]
+    removed_df = thresholded_df[~thresholded_df["Trial no"].isin(trials_above_max)]
     removed_df = removed_df.reset_index(drop=True)
     return removed_df
 
@@ -177,6 +203,3 @@ def calculate_change_from_baseline(data_df):
             (trial_df["Stim eye - Size Mm"] - baseline) * 100 / baseline
         )
     return data_df
-
-
-
