@@ -24,7 +24,7 @@ loading_utils - utilities relating to loading and marking data from raw files
 
 preprocessing_utils - utilities relating to preprocessing data from dataframes created with loading_utils
 
-visualisation_utils - utilities for plotting processed data
+visualisation_utils - utilities for plotting data
 
 ## Example: load and resample data to 50 Hz (see load_ notebooks)
 
