@@ -194,12 +194,51 @@ def remove_trials_with_long_nans(
     return removed_df
 
 
+def remove_bad_conditions(data_df,trial_min = 3):
+    # aggregate unique trial numbers in each block-condition group
+    groupby_condition_df = data_df[['Block','Trial type','Trial no']].groupby(['Block','Trial type']).agg({'Trial no':'nunique'})
+    groupby_condition_df.reset_index(inplace=True)
+    
+    # find block-condition pairs where a condition has less than 3 trials
+    low_cond_block_pairs = [(block,cond) for (block,cond) in zip(groupby_condition_df['Block'],groupby_condition_df['Trial type'])
+                            if groupby_condition_df['Trial no'][(groupby_condition_df['Block']==block)
+                                                                & (groupby_condition_df['Trial type']==cond)].values < trial_min]
+    # find trial numbers corresponding to the pairs above
+    low_cond_trials = [trial_no for block,cond in low_cond_block_pairs for trial_no in data_df['Trial no'][(data_df['Block']==block)&(data_df['Trial type']==cond)]]
+    
+    # remove the found trials from dataframe
+    removed_df = data_df[~data_df['Trial no'].isin(low_cond_trials)]
+    
+    return removed_df
+
+
+def remove_bad_blocks(data_df,trial_min = 3):
+    
+    # aggregate unique trial numbers in each block-condition group
+    groupby_condition_df = data_df[['Block','Trial type','Trial no']].groupby(['Block','Trial type']).agg('nunique')
+    groupby_condition_df.reset_index(inplace=True)
+    
+    # find blocks with no flux
+    blocks_no_flux = [block for block in groupby_condition_df['Block'].unique() 
+                      if 'flux' not in  groupby_condition_df['Trial type'][(groupby_condition_df['Block']==block)].to_list()]
+    
+    # find blocks with one condition - this takes care of blocks where flux is the only one, shorter code than conditions on other-than-flux
+    blocks_no_other = [block for block in groupby_condition_df['Block'].unique() 
+                       if len(groupby_condition_df['Trial type'][(groupby_condition_df['Block']==block)]) == 1]
+
+    # remove the identified bad blocks from dataframe
+    removed_df = data_df[(~data_df['Block'].isin(blocks_no_flux))&(~data_df['Block'].isin(blocks_no_other))]
+    return removed_df
+    
+
 def calculate_change_from_baseline(data_df):
-    data_df["Baseline change %"] = [pd.NA] * len(data_df)
-    for i in data_df["Trial no"][data_df["Trial no"].notna()].unique():
+    data_df["Baseline change %"] = pd.Series()
+    for i in data_df["Trial no"].unique():
         trial_df = data_df[(data_df["Trial no"] == i)].copy()
         baseline = trial_df["Stim eye - Size Mm"][trial_df["Trial time Sec"] < 0].mean()
         data_df.loc[(data_df["Trial no"] == i), "Baseline change %"] = (
             (trial_df["Stim eye - Size Mm"] - baseline) * 100 / baseline
         )
     return data_df
+
+
