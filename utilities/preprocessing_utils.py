@@ -1,6 +1,7 @@
 import pandas as pd
 import numpy as np
 import datetime
+from abc import ABC
 
 
 def resample_by_trial(data_df, sample_freq=50):
@@ -277,3 +278,11 @@ def calculate_change_from_baseline(data_df):
             (trial_df["Stim eye - Size Mm"] - baseline) * 100 / baseline
         )
     return data_df
+
+
+
+class Preprocessor(ABC):
+    def __init__(self,data_df):
+        self.data_df = data_df.copy()
+    
+    
