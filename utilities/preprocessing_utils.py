@@ -226,6 +226,7 @@ def remove_bad_conditions(data_df, trial_min=3):
 
     # remove the found trials from dataframe
     removed_df = data_df[~data_df["Trial no"].isin(low_cond_trials)]
+    removed_df = removed_df.reset_index(drop=True)
 
     return removed_df
 
@@ -265,6 +266,7 @@ def remove_bad_blocks(data_df, trial_min=3):
         (~data_df["Block"].isin(blocks_no_flux))
         & (~data_df["Block"].isin(blocks_no_other))
     ]
+    removed_df = removed_df.reset_index(drop=True)
     return removed_df
 
 
