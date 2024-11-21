@@ -4,7 +4,16 @@ import datetime
 from abc import ABC
 
 
-def resample_by_trial(data_df, sample_freq=50):
+def resample_by_trial(data_df : pd.DataFrame, sample_freq : int =30):
+    """Function for resampling raw data.
+
+    Args:
+        data_df (pd.DataFrame): Dataframe with raw data from one participant from loading_utils.load_participant_data
+        sample_freq (int, optional): Desired sampling frequency in Hz to resample data to. Defaults to 30.
+
+    Returns:
+        new_df (pd.DataFrame): DataFrame resampled to desired frequency with columns truncated to : Trial no, time Sec, time datetime, phase, type, Block, Test, Recording id, Participant id, Eye
+    """
     # get time step in ms from sampling frequency provided
     time_step = np.ceil((1000 / sample_freq) * 1e6)
 
@@ -102,12 +111,24 @@ def resample_by_trial(data_df, sample_freq=50):
 
 
 def remove_trials_below_percentage(
-    resampled_df,
-    baseline_threshold=40,
-    poi_threshold=75,
-    baseline_time=[-1, 0],
-    poi_time=[0, 6],
+    resampled_df : pd.DataFrame,
+    baseline_threshold : int =40,
+    poi_threshold : int =75,
+    baseline_time : list =[-1, 0],
+    poi_time : list =[0, 6],
 ):
+    """Function for removing trials below data completeness percentage threshold.
+
+    Args:
+        resampled_df (pd.DataFrame): resampled dataframe, output of preprocessing_utils.resample_by_trial
+        baseline_threshold (int, optional): percentage threshold for baseline. Defaults to 40.
+        poi_threshold (int, optional): percentage threshold for period of interest. Defaults to 75.
+        baseline_time (list, optional): time borders for baseline in seconds [start, end]. Defaults to [-1, 0].
+        poi_time (list, optional): time borders for period of interest in seconds [start, end]. Defaults to [0, 6].
+
+    Returns:
+        removed_df (pd.DataFrame): dataframe with trials not meeting both percentage conditions removed
+    """
 
     resampled_df = resampled_df.copy()
 
@@ -162,8 +183,19 @@ def remove_trials_below_percentage(
 
 
 def remove_trials_with_long_nans(
-    thresholded_df, fs=30, max_nan_length=500, poi_time=[0, 6]
+    thresholded_df : pd.DataFrame, fs : int =30, max_nan_length : int =500, poi_time : list =[0, 6]
 ):
+    """Function for removing trials with NaN sequences exceeding the limit in ms in period of interest.
+
+    Args:
+        thresholded_df (pd.DataFrame): dataframe with resampled data.
+        fs (int, optional): sampling frequency of dataframe. Defaults to 30.
+        max_nan_length (int, optional): maximum NaN sequence length in miliseconds. Defaults to 500.
+        poi_time (list, optional): time borders for period of interest in seconds [start,end]. Defaults to [0, 6].
+
+    Returns:
+        removed_df (pd.DataFrame): dataframe with trials exceeding the gap length condition removed
+    """
     # select rows in the period of interest
     data_df = thresholded_df[
         (thresholded_df["Trial time Sec"] >= poi_time[0])
@@ -195,7 +227,16 @@ def remove_trials_with_long_nans(
     return removed_df
 
 
-def remove_bad_conditions(data_df, trial_min=3):
+def remove_bad_conditions(data_df : pd.DataFrame, trial_min : int =3):
+    """Function for removing conditions with insufficient trial numbers in a block.
+
+    Args:
+        data_df (pd.DataFrame): dataframe with trials removed based on data completeness (preprocessing_utils.remove_trials_below_percentage,remove_trials_with_long_nans).
+        trial_min (int, optional): minimum number of trials. Defaults to 3.
+
+    Returns:
+        removed_df (pd.DataFrame): dataframe with conditions removed from blocks where they don't meet the minimum trial number
+    """
     # aggregate unique trial numbers in each block-condition group
     groupby_condition_df = (
         data_df[["Block", "Trial type", "Trial no"]]
@@ -227,11 +268,20 @@ def remove_bad_conditions(data_df, trial_min=3):
 
     # remove the found trials from dataframe
     removed_df = data_df[~data_df["Trial no"].isin(low_cond_trials)]
+    removed_df = removed_df.reset_index(drop=True)
 
     return removed_df
 
 
-def remove_bad_blocks(data_df, trial_min=3):
+def remove_bad_blocks(data_df: pd.DataFrame):
+    """Function for removing blocks after condition rejection. Requirement: flux and one other condition still present.
+
+    Args:
+        data_df (pd.DataFrame): dataframe with conditions removed in preprocessing_utils.remove_bad_conditions
+
+    Returns:
+        removed_df (pd.DataFrame): dataframe with blocks that do not meet the requirement of flux and one other condition present removed
+    """
 
     # aggregate unique trial numbers in each block-condition group
     groupby_condition_df = (
@@ -266,6 +316,7 @@ def remove_bad_blocks(data_df, trial_min=3):
         (~data_df["Block"].isin(blocks_no_flux))
         & (~data_df["Block"].isin(blocks_no_other))
     ]
+    removed_df = removed_df.reset_index(drop=True)
     return removed_df
 
 
