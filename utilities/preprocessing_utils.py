@@ -183,14 +183,14 @@ def remove_trials_below_percentage(
 
 
 def remove_trials_with_long_nans(
-    thresholded_df : pd.DataFrame, fs : int =30, max_nan_length : int =500, poi_time : list =[0, 6]
+    thresholded_df : pd.DataFrame, fs : int =30, max_nan_length : int =625, poi_time : list =[0, 6]
 ):
     """Function for removing trials with NaN sequences exceeding the limit in ms in period of interest.
 
     Args:
         thresholded_df (pd.DataFrame): dataframe with resampled data.
         fs (int, optional): sampling frequency of dataframe. Defaults to 30.
-        max_nan_length (int, optional): maximum NaN sequence length in miliseconds. Defaults to 500.
+        max_nan_length (int, optional): maximum NaN sequence length in miliseconds. Defaults to 625.
         poi_time (list, optional): time borders for period of interest in seconds [start,end]. Defaults to [0, 6].
 
     Returns:
