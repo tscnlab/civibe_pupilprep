@@ -12,7 +12,7 @@ def resample_by_trial(data_df : pd.DataFrame, sample_freq : int =30):
         sample_freq (int, optional): Desired sampling frequency in Hz to resample data to. Defaults to 30.
 
     Returns:
-        new_df (pd.DataFrame): DataFrame resampled to desired frequency with columns truncated to : Trial no, time Sec, time datetime, phase, type, Block, Test, Recording id, Participant id, Eye
+        pd.DataFrame: DataFrame resampled to desired frequency with columns truncated to : Trial no, time Sec, time datetime, phase, type, Block, Test, Recording id, Participant id, Eye
     """
     # get time step in ms from sampling frequency provided
     time_step = np.ceil((1000 / sample_freq) * 1e6)
@@ -127,7 +127,7 @@ def remove_trials_below_percentage(
         poi_time (list, optional): time borders for period of interest in seconds [start, end]. Defaults to [0, 6].
 
     Returns:
-        removed_df (pd.DataFrame): dataframe with trials not meeting both percentage conditions removed
+        pd.DataFrame: dataframe with trials not meeting both percentage conditions removed
     """
 
     resampled_df = resampled_df.copy()
@@ -194,7 +194,7 @@ def remove_trials_with_long_nans(
         poi_time (list, optional): time borders for period of interest in seconds [start,end]. Defaults to [0, 6].
 
     Returns:
-        removed_df (pd.DataFrame): dataframe with trials exceeding the gap length condition removed
+        pd.DataFrame: dataframe with trials exceeding the gap length condition removed
     """
     # select rows in the period of interest
     data_df = thresholded_df[
@@ -235,7 +235,7 @@ def remove_bad_conditions(data_df : pd.DataFrame, trial_min : int =3):
         trial_min (int, optional): minimum number of trials. Defaults to 3.
 
     Returns:
-        removed_df (pd.DataFrame): dataframe with conditions removed from blocks where they don't meet the minimum trial number
+        pd.DataFrame: dataframe with conditions removed from blocks where they don't meet the minimum trial number
     """
     # aggregate unique trial numbers in each block-condition group
     groupby_condition_df = (
@@ -280,7 +280,7 @@ def remove_bad_blocks(data_df: pd.DataFrame):
         data_df (pd.DataFrame): dataframe with conditions removed in preprocessing_utils.remove_bad_conditions
 
     Returns:
-        removed_df (pd.DataFrame): dataframe with blocks that do not meet the requirement of flux and one other condition present removed
+        pd.DataFrame: dataframe with blocks that do not meet the requirement of flux and one other condition present removed
     """
 
     # aggregate unique trial numbers in each block-condition group
@@ -319,6 +319,96 @@ def remove_bad_blocks(data_df: pd.DataFrame):
     removed_df = removed_df.reset_index(drop=True)
     return removed_df
 
+
+def remove_artifacts_non_physio_size(data_df:pd.DataFrame):
+    """Function setting the non-physiological pupil size values in either eye to NaN.
+
+    Args:
+        data_df (pd.DataFrame): dataframe for one participant loaded using loading_utils.load_participant_data
+
+    Returns:
+        pd.DataFrame: dataframe with non-physiological pupil sizes set to pd.NA
+    """
+    data_df.loc[(data_df['Right - Size Mm']<1.5) | (data_df['Right - Size Mm']>9), 'Right - Size Mm'] = pd.NA
+    data_df.loc[(data_df['Left - Size Mm']<1.5) | (data_df['Left - Size Mm']>9), 'Left - Size Mm'] = pd.NA
+    data_df.loc[(data_df['Stim eye - Size Mm']<1.5) | (data_df['Stim eye - Size Mm']>9), 'Stim eye - Size Mm'] = pd.NA
+    return data_df
+
+
+def remove_artifacts_phase_velocity_mad(resampled_df:pd.DataFrame, multiplier:float=4.5,column:str='Stim eye - Size Mm'):
+    """Function for removing artifacts based on median absolute deviation threshold for absolute pupil velocity. 
+    Calculates a separate threshold for each phase of the trial: pre-stim, stim, post-stim.
+
+    Args:
+        resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
+        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 4.5.
+        column (str,optional): column with signal to remove artifacts from. Defaults to 'Stim eye - Size Mm'.
+
+    Returns:
+        pd.DataFrame: dataframe with pupil size in stimulated eye set to pd.NA where velocity exceeds threshold.
+    """
+    
+    resampled_df['Time diff'] = resampled_df['Trial time Sec'].diff()
+    resampled_df['Size diff'] = resampled_df[column].diff()
+    resampled_df.loc[resampled_df['Time diff']<0,'Size diff'] = pd.NA
+    resampled_df.loc[resampled_df['Time diff']<0,'Time diff'] = pd.NA
+    
+    for trial_no in sorted(resampled_df['Trial no'].unique()):
+        trial = resampled_df[resampled_df['Trial no']==trial_no].copy()
+        trial['Pupil velocity -1'] = abs(trial['Size diff']/trial['Time diff'])
+        trial['Pupil velocity +1']=abs(trial['Size diff'].shift(-1)/trial['Time diff'].shift(-1))
+        trial['Pupil velocity']=trial[['Pupil velocity -1','Pupil velocity +1']].max(axis='columns')
+        
+        for phase in sorted(trial['Trial phase'].unique()):
+            
+            median = trial['Pupil velocity'][trial['Trial phase']==phase].median()
+            mad = (abs(trial['Pupil velocity'][trial['Trial phase']==phase] - median)).median()
+            threshold_up = median+multiplier*mad
+            
+            resampled_df.loc[(resampled_df['Trial no']==trial_no)&(resampled_df['Trial phase']==phase),'MAD speed threshold'] = threshold_up
+        resampled_df.loc[(resampled_df['Trial no']==trial_no),'Pupil velocity'] = trial['Pupil velocity']
+    
+    resampled_df.loc[resampled_df['Pupil velocity'] > resampled_df['MAD speed threshold'],column] = pd.NA
+    resampled_df = resampled_df.drop(columns=['Pupil velocity','MAD speed threshold'])
+    return resampled_df
+
+
+def remove_artifacts_rolling_size_mad(resampled_df:pd.DataFrame,window:int=60,multiplier:float=4.5,column:str = 'Stim eye - Size Mm'):
+    """Function for removing artifacts based on median absolute deviation threshold for pupil size. Calculates MAD in a rolling window.
+
+    Args:
+        resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial or with speed artifacts removed from remove_artifacts_phase_velocity_mad 
+        window (int): size of the rolling window in samples. Defaults to 60.
+        multiplier (float, optional): multiplier for MAD threshold (median+/-multiplier*MAD). Defaults to 4.5.
+        column (str, optional): Column with signal to remove artifacts from. Defaults to 'Stim eye - Size Mm'.
+
+    Returns:
+        pd.DataFrame: dataframe with pupil size samples out of MAD bounds replaced by pd.NA
+    """
+    
+    for trial_no in sorted(resampled_df['Trial no'].unique()):
+        trial = resampled_df[resampled_df['Trial no']==trial_no].copy(deep=True)
+        trial.reset_index(inplace=True)
+        trial['MAD size threshold'] = pd.Series()
+        
+        median = trial[column].rolling(window=window,min_periods=1,center=True).median()
+  
+        mad = trial[column].rolling(window=window,min_periods=1,center=True).apply(lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))),raw=True)
+
+        
+        trial.loc[:,'MAD size upper threshold']=median+multiplier*mad
+        trial.loc[:,'MAD size lower threshold']=median-multiplier*mad
+       
+        
+        resampled_df.loc[resampled_df['Trial no']==trial_no,'MAD size upper threshold'] = trial['MAD size upper threshold'].to_list()
+        resampled_df.loc[resampled_df['Trial no']==trial_no,'MAD size lower threshold'] = trial['MAD size lower threshold'].to_list()
+        
+    resampled_df.loc[((resampled_df[column] > resampled_df['MAD size upper threshold'])
+                      |(resampled_df[column] < resampled_df['MAD size lower threshold'])),column] = pd.NA
+    
+    resampled_df = resampled_df.drop(columns=['MAD size upper threshold','MAD size lower threshold'])
+    
+    return resampled_df
 
 def calculate_change_from_baseline(data_df):
     data_df["Baseline change %"] = pd.Series()
