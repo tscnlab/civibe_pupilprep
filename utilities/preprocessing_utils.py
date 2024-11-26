@@ -3,6 +3,7 @@ import numpy as np
 import datetime
 from abc import ABC
 
+#Functions for resampling data
 
 def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
     """Function for resampling raw data.
@@ -109,6 +110,8 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
     new_df.reset_index(inplace=True)
     return new_df
 
+
+# Functions for rejecting incomplete data
 
 def remove_trials_below_percentage(
     resampled_df: pd.DataFrame,
@@ -323,6 +326,8 @@ def remove_bad_blocks(data_df: pd.DataFrame):
     return removed_df
 
 
+# Functions for removing artefacts
+
 def remove_artifacts_non_physio_size(data_df: pd.DataFrame):
     """Function setting the non-physiological pupil size values in either eye to NaN.
 
@@ -460,6 +465,7 @@ def remove_artifacts_rolling_size_mad(
 
     return resampled_df
 
+# Others (WIP)
 
 def calculate_change_from_baseline(data_df):
     data_df["Baseline change %"] = pd.Series()

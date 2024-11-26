@@ -208,6 +208,8 @@ def plot_rolling_size_MAD(
         plt.show()
 
 
+# Functions for plotting trials
+
 def plot_trials(data_df, participant_id, trial_types: list):
     fig, axs = plt.subplots(1, len(trial_types), figsize=(len(trial_types) * 5, 5))
     for i, trial_type in enumerate(trial_types):
