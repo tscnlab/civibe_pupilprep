@@ -368,14 +368,18 @@ def remove_artifacts_phase_velocity_mad(
     Returns:
         pd.DataFrame: dataframe with pupil size in stimulated eye set to pd.NA where velocity exceeds threshold.
     """
-
+    # calculate time difference and pupil size difference between samples, setting negative time differences to pd.NA (they indicate transition between trials)
     resampled_df["Time diff"] = resampled_df["Trial time Sec"].diff()
     resampled_df["Size diff"] = resampled_df[column].diff()
     resampled_df.loc[resampled_df["Time diff"] < 0, "Size diff"] = pd.NA
     resampled_df.loc[resampled_df["Time diff"] < 0, "Time diff"] = pd.NA
 
+    # iterate by trials because the signal is not continuous outside of them (due to transition times etc.)
     for trial_no in sorted(resampled_df["Trial no"].unique()):
+        
         trial = resampled_df[resampled_df["Trial no"] == trial_no].copy()
+        
+        # calculate maximum absolute pupil velocity for each sample (max[abs(v(t)),abs(v(t+1))])
         trial["Pupil velocity -1"] = abs(trial["Size diff"] / trial["Time diff"])
         trial["Pupil velocity +1"] = abs(
             trial["Size diff"].shift(-1) / trial["Time diff"].shift(-1)
@@ -384,27 +388,35 @@ def remove_artifacts_phase_velocity_mad(
             axis="columns"
         )
 
+        # iterate over trial phases to get MAD for each phase
         for phase in sorted(trial["Trial phase"].unique()):
 
             median = trial["Pupil velocity"][trial["Trial phase"] == phase].median()
             mad = (
                 abs(trial["Pupil velocity"][trial["Trial phase"] == phase] - median)
             ).median()
+            
+            # get threshold and insert as a column in big dataframe
             threshold_up = median + multiplier * mad
-
             resampled_df.loc[
                 (resampled_df["Trial no"] == trial_no)
                 & (resampled_df["Trial phase"] == phase),
                 "MAD speed threshold",
             ] = threshold_up
+        
+    
         resampled_df.loc[(resampled_df["Trial no"] == trial_no), "Pupil velocity"] = (
             trial["Pupil velocity"]
         )
 
+    # replace samples above threshold with pd.NA
     resampled_df.loc[
         resampled_df["Pupil velocity"] > resampled_df["MAD speed threshold"], column
     ] = pd.NA
-    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold"])
+    
+    # drop difference, velocity and threshold columns to retain only clean dataframe
+    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold","Time diff","Size diff"])
+    
     return resampled_df
 
 
@@ -425,25 +437,28 @@ def remove_artifacts_rolling_size_mad(
     Returns:
         pd.DataFrame: dataframe with pupil size samples out of MAD bounds replaced by pd.NA
     """
-
+    # iterate by trials because the signal is not continuous outside of them (due to transition times etc.)
     for trial_no in sorted(resampled_df["Trial no"].unique()):
         trial = resampled_df[resampled_df["Trial no"] == trial_no].copy(deep=True)
         trial.reset_index(inplace=True)
-        trial["MAD size threshold"] = pd.Series()
-
+        
+        # calculate median in a rolling window
         median = (
             trial[column].rolling(window=window, min_periods=1, center=True).median()
         )
 
+        # calculate mad in a rolling window
         mad = (
             trial[column]
             .rolling(window=window, min_periods=1, center=True)
             .apply(lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True)
         )
 
+        # get upper and lower threshold
         trial.loc[:, "MAD size upper threshold"] = median + multiplier * mad
         trial.loc[:, "MAD size lower threshold"] = median - multiplier * mad
 
+        # put thresholds in big dataframe for this trial
         resampled_df.loc[
             resampled_df["Trial no"] == trial_no, "MAD size upper threshold"
         ] = trial["MAD size upper threshold"].to_list()
@@ -451,6 +466,7 @@ def remove_artifacts_rolling_size_mad(
             resampled_df["Trial no"] == trial_no, "MAD size lower threshold"
         ] = trial["MAD size lower threshold"].to_list()
 
+    # replace values outside of threshold borders with pd.NA
     resampled_df.loc[
         (
             (resampled_df[column] > resampled_df["MAD size upper threshold"])
@@ -459,6 +475,7 @@ def remove_artifacts_rolling_size_mad(
         column,
     ] = pd.NA
 
+    # drop threshold columns to retain a clean dataframe
     resampled_df = resampled_df.drop(
         columns=["MAD size upper threshold", "MAD size lower threshold"]
     )

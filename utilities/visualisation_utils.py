@@ -9,21 +9,23 @@ import numpy as np
 def plot_velocity_MAD(
     resampled_df: pd.DataFrame, trials_to_vis: list, multiplier: float = 4.5
 ):
-    """Function that plots for selected trials: pupil size, pupil velocity (absolute), MAD threshold for pupil velocity for outlier detection. Returns nothing.
+    """Function that plots for selected trials: pupil size from stimulated eye, pupil velocity (absolute), MAD threshold for pupil velocity for outlier detection. Returns nothing.
 
     Args:
         resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
         trials_to_vis (list): list of trial numbers to visualize (from Trial no column)
         multiplier (float, optional): multiplier for MAD threshold (threshold=median+multiplier*MAD). Defaults to 4.5.
     """
-
+    # get time and size differences between samples
     resampled_df["Time diff"] = resampled_df["Trial time Sec"].diff()
     resampled_df["Size diff"] = resampled_df["Stim eye - Size Mm"].diff()
     resampled_df.loc[resampled_df["Time diff"] < 0, "Size diff"] = pd.NA
     resampled_df.loc[resampled_df["Time diff"] < 0, "Time diff"] = pd.NA
 
+    # iterate over trials to visualize
     for trial_no in trials_to_vis:
         trial = resampled_df[resampled_df["Trial no"] == trial_no].copy()
+        # calculate max velocity for a sample max[abs(v(t)),abs(v(t+1))]
         trial["Pupil velocity -1"] = abs(trial["Size diff"] / trial["Time diff"])
         trial["Pupil velocity +1"] = abs(
             trial["Size diff"].shift(-1) / trial["Time diff"].shift(-1)
@@ -32,6 +34,7 @@ def plot_velocity_MAD(
             axis="columns"
         )
 
+        #iterate over trial phases and calculate mad threshold for each phase
         for phase in sorted(trial["Trial phase"].unique()):
 
             median = trial["Pupil velocity"][trial["Trial phase"] == phase].median()
@@ -49,6 +52,7 @@ def plot_velocity_MAD(
             trial["Pupil velocity"]
         )
 
+        # plot signal, velocity, threshold
         plt.figure(figsize=(30, 10))
 
         plt.plot(
@@ -92,7 +96,8 @@ def plot_velocity_MAD(
         plt.legend()
         plt.xlabel("Time [s]")
         plt.show()
-
+    # drop velocity and threshold columns to retain only clean dataframe
+    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold","Time diff","Size diff"])
 
 def plot_rolling_size_MAD(
     resampled_df: pd.DataFrame,
@@ -108,12 +113,12 @@ def plot_rolling_size_MAD(
         window (int, optional): window size for rolling MAD calculation in samples. Defaults to 60.
         multiplier (float, optional): multiplier for MAD threshold (threshold=median+/-multiplier*MAD). Defaults to 4.5.
     """
-
+    # iterate over trials to visualize
     for trial_no in trials_to_vis:
         trial = resampled_df[resampled_df["Trial no"] == trial_no].copy(deep=True)
         trial.reset_index(inplace=True)
-        trial["MAD size threshold"] = pd.Series()
 
+        #calculate mad threshold, upper and lower in rolling window
         median = (
             trial["Stim eye - Size Mm"]
             .rolling(window=window, min_periods=1, center=True)
@@ -135,6 +140,8 @@ def plot_rolling_size_MAD(
         resampled_df.loc[
             resampled_df["Trial no"] == trial_no, "MAD size lower threshold"
         ] = trial["MAD size lower threshold"].to_list()
+        
+        #plot signal, thresholds, samples removed by threshold
         plt.figure(figsize=(30, 10))
 
         plt.plot(
@@ -206,7 +213,11 @@ def plot_rolling_size_MAD(
         plt.title(str(trial_no))
         plt.xlabel("Time [s]")
         plt.show()
-
+    
+    # drop unnecessary columns
+    resampled_df = resampled_df.drop(
+        columns=["MAD size upper threshold", "MAD size lower threshold"]
+    )
 
 # Functions for plotting trials
 
