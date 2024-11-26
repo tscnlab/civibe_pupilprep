@@ -81,7 +81,7 @@ poi_threshold = 75
 baseline_time = [-1,0]
 poi_time = [0,6]
 
-thresholded_df = remove_trials_below_percentage(data_df,baseline_threshold,poi_threshold,baseline_time,poi_time)
+thresholded_df = prep.remove_trials_below_percentage(data_df,baseline_threshold,poi_threshold,baseline_time,poi_time)
 
 
 ```
