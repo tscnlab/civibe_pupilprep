@@ -5,7 +5,14 @@ import numpy as np
 
 # Visualisations of artifact removal functions
 
-def plot_velocity_MAD(resampled_df,trials_to_vis,multiplier=4.5):
+def plot_velocity_MAD(resampled_df:pd.DataFrame,trials_to_vis:list,multiplier:float=4.5):
+    """Function that plots for selected trials: pupil size, pupil velocity (absolute), MAD threshold for pupil velocity for outlier detection. Returns nothing.
+
+    Args:
+        resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
+        trials_to_vis (list): list of trial numbers to visualize (from Trial no column)
+        multiplier (float, optional): multiplier for MAD threshold (threshold=median+multiplier*MAD). Defaults to 4.5.
+    """
 
     resampled_df['Time diff'] = resampled_df['Trial time Sec'].diff()
     resampled_df['Size diff'] = resampled_df['Stim eye - Size Mm'].diff()
@@ -44,16 +51,24 @@ def plot_velocity_MAD(resampled_df,trials_to_vis,multiplier=4.5):
         plt.xlabel('Time [s]')
         plt.show()
 
-def plot_rolling_size_MAD(resampled_df,trials_to_vis,step=60,multiplier=4.5):
+def plot_rolling_size_MAD(resampled_df:pd.DataFrame,trials_to_vis:list,window:int=60,multiplier:float=4.5):
+    """Function for plotting pupil size MAD thresholds for selected trials. Returns nothing.
+
+    Args:
+        resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial, or with velocity artifacts removed by preprocessing_utils.remove_artifacts_phase_velocity_mad
+        trials_to_vis (list): list of trial numbers to visualize (based on Trial no column)
+        window (int, optional): window size for rolling MAD calculation in samples. Defaults to 60.
+        multiplier (float, optional): multiplier for MAD threshold (threshold=median+/-multiplier*MAD). Defaults to 4.5.
+    """
 
     for trial_no in trials_to_vis:
         trial = resampled_df[resampled_df['Trial no']==trial_no].copy(deep=True)
         trial.reset_index(inplace=True)
         trial['MAD size threshold'] = pd.Series()
         
-        median = trial['Stim eye - Size Mm'].rolling(window=step,min_periods=1,center=True).median()
+        median = trial['Stim eye - Size Mm'].rolling(window=window,min_periods=1,center=True).median()
   
-        mad = trial['Stim eye - Size Mm'].rolling(window=step,min_periods=1,center=True).apply(lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))),raw=True)
+        mad = trial['Stim eye - Size Mm'].rolling(window=window,min_periods=1,center=True).apply(lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))),raw=True)
 
         
         trial.loc[:,'MAD size upper threshold']=median+multiplier*mad
