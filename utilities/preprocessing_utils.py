@@ -15,14 +15,11 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
     Returns:
         pd.DataFrame: DataFrame resampled to desired frequency with columns truncated to : Trial no, time Sec, time datetime, phase, type, Block, Test, Recording id, Participant id, Eye
     """
-    # get time step in ms from sampling frequency provided
+    # get time step in ns from sampling frequency provided - ns give greater precision
     time_step = np.ceil((1000 / sample_freq) * 1e6)
 
-    # take subset of data without transition and adaptation parts
-    data_subset = data_df[
-        (data_df["Trial phase"] != "Adaptation")
-        & (data_df["Trial phase"] != "Transition")
-    ]
+    # take subset of data without transition and adaptation parts (so without non-trial values)
+    data_subset = data_df[(data_df["Trial no"].notna())]
 
     # map trial-relevant variables to trial numbers for trial marking after resampling
     trial_list = sorted(data_subset["Trial no"].unique())
@@ -60,17 +57,19 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
     trials_for_new_df = []
     for i, trial_no in enumerate(trial_list):
 
-        trial = data_subset[["Trial time Sec", "Stim eye - Size Mm"]][
+        trial = data_subset[["Trial time Sec", "Stim eye - Size Mm","Right - Size Mm","Left - Size Mm"]][
             data_subset["Trial no"] == trial_no
         ].copy()
+        # add a row at -1s so that every trial has the same time ticks
         trial.loc[datetime.timedelta(seconds=-1)] = (
             pd.Series()
-        )  # add a row at -1s so that every trial has the same time ticks
+        )  
+        # just in case the trial is too short, add row at 18s (this ensures we have all trials at the same length - then they can e.g. easily go into an array)
         trial.loc[datetime.timedelta(seconds=18)] = (
             pd.Series()
-        )  # just in case the trial is too short, add row at 18s
+        )  
         resampled_trial = trial.resample(str(time_step) + "ns").agg(
-            {"Stim eye - Size Mm": "mean"}
+            {"Stim eye - Size Mm": "mean","Right - Size Mm": "mean","Left - Size Mm": "mean"}
         )
         # cut trial to 18 s
         resampled_trial = resampled_trial[
