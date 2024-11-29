@@ -400,13 +400,15 @@ def remove_artefacts_rolling_velocity_mad(
         trial.loc[:, "MAD speed threshold"] = median + multiplier * mad
         resampled_df.loc[resampled_df['Trial no']==trial_no,'MAD speed threshold'] = trial['MAD speed threshold']
         resampled_df.loc[resampled_df['Trial no']==trial_no,'Pupil velocity'] = trial['Pupil velocity']
-    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold"])
+    
     resampled_df.loc[
         (
-            (resampled_df[column] > resampled_df["MAD speed threshold"])
+            (resampled_df['Pupil velocity'] > resampled_df["MAD speed threshold"])
         ),
         column,
     ] = pd.NA
+    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold"])
+    
     
     return resampled_df
 
