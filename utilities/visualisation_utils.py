@@ -107,6 +107,7 @@ def plot_rolling_velocity_MAD(
     Args:
         resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
         trials_to_vis (list): list of trial numbers to visualize (from Trial no column)
+        window (int, optional): window size for rolling MAD calculation in samples. Defaults to 60.
         multiplier (float, optional): multiplier for MAD threshold (threshold=median+multiplier*MAD). Defaults to 4.5.
     """
     # get time and size differences between samples
