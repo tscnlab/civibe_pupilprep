@@ -327,7 +327,7 @@ def remove_bad_blocks(data_df: pd.DataFrame):
 
 # Functions for removing artefacts
 
-def remove_artifacts_non_physio_size(data_df: pd.DataFrame):
+def remove_artefacts_non_physio_size(data_df: pd.DataFrame):
     """Function setting the non-physiological pupil size values in either eye to NaN.
 
     Args:
@@ -350,13 +350,74 @@ def remove_artifacts_non_physio_size(data_df: pd.DataFrame):
     ] = pd.NA
     return data_df
 
+def remove_artefacts_rolling_velocity_mad(
+    resampled_df: pd.DataFrame,
+    multiplier: float = 4.5,
+    window: int = 60,
+    column: str = "Stim eye - Size Mm",
+):
+    """Function for removing artefacts based on median absolute deviation threshold for absolute pupil velocity.
+    Calculates the threshold in a rolling window.
+
+    Args:
+        resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
+        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 4.5.
+        window (int, optional): rolling window size in samples. Defaults to 60.
+        column (str,optional): column with signal to remove artifacts from. Defaults to 'Stim eye - Size Mm'.
+
+    Returns:
+        pd.DataFrame: dataframe with pupil size in stimulated eye set to pd.NA where velocity exceeds threshold.
+    """
+
+    resampled_df["Time diff"] = resampled_df["Trial time Sec"].diff()
+    resampled_df["Size diff"] = resampled_df[column].diff()
+    resampled_df.loc[resampled_df["Time diff"] < 0, "Size diff"] = pd.NA
+    resampled_df.loc[resampled_df["Time diff"] < 0, "Time diff"] = pd.NA
+
+    for trial_no in sorted(resampled_df["Trial no"].unique()):
+        trial = resampled_df[resampled_df["Trial no"] == trial_no].copy()
+        trial["Pupil velocity -1"] = abs(trial["Size diff"] / trial["Time diff"])
+        trial["Pupil velocity +1"] = abs(
+            trial["Size diff"].shift(-1) / trial["Time diff"].shift(-1)
+        )
+        trial["Pupil velocity"] = trial[["Pupil velocity -1", "Pupil velocity +1"]].max(
+            axis="columns"
+        )
+
+        median = (
+            trial["Pupil velocity"]
+            .rolling(window=window, min_periods=1, center=True)
+            .median()
+        )
+
+        mad = (
+            trial["Pupil velocity"]
+            .rolling(window=window, min_periods=1, center=True)
+            .apply(lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True)
+        )
+
+        trial.loc[:, "MAD speed threshold"] = median + multiplier * mad
+        resampled_df.loc[resampled_df['Trial no']==trial_no,'MAD speed threshold'] = trial['MAD speed threshold']
+        resampled_df.loc[resampled_df['Trial no']==trial_no,'Pupil velocity'] = trial['Pupil velocity']
+    
+    resampled_df.loc[
+        (
+            (resampled_df['Pupil velocity'] > resampled_df["MAD speed threshold"])
+        ),
+        column,
+    ] = pd.NA
+    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold"])
+    
+    
+    return resampled_df
+
 
 def remove_artefacts_phase_velocity_mad(
     resampled_df: pd.DataFrame,
     multiplier: float = 4.5,
     column: str = "Stim eye - Size Mm",
 ):
-    """Function for removing artifacts based on median absolute deviation threshold for absolute pupil velocity.
+    """Function for removing artefacts based on median absolute deviation threshold for absolute pupil velocity.
     Calculates a separate threshold for each phase of the trial: pre-stim, stim, post-stim.
 
     Args:
@@ -425,10 +486,10 @@ def remove_artefacts_rolling_size_mad(
     multiplier: float = 4.5,
     column: str = "Stim eye - Size Mm",
 ):
-    """Function for removing artifacts based on median absolute deviation threshold for pupil size. Calculates MAD in a rolling window.
+    """Function for removing artefacts based on median absolute deviation threshold for pupil size. Calculates MAD in a rolling window.
 
     Args:
-        resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial or with speed artifacts removed from remove_artifacts_phase_velocity_mad
+        resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial or with speed artefacts removed from remove_artifacts_phase_velocity_mad
         window (int): size of the rolling window in samples. Defaults to 60.
         multiplier (float, optional): multiplier for MAD threshold (median+/-multiplier*MAD). Defaults to 4.5.
         column (str, optional): Column with signal to remove artifacts from. Defaults to 'Stim eye - Size Mm'.

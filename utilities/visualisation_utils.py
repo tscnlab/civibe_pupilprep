@@ -6,7 +6,7 @@ import numpy as np
 # Visualisations of artifact removal functions
 
 
-def plot_velocity_MAD(
+def plot_phase_velocity_MAD(
     resampled_df: pd.DataFrame, trials_to_vis: list, multiplier: float = 4.5
 ):
     """Function that plots for selected trials: pupil size from stimulated eye, pupil velocity (absolute), MAD threshold for pupil velocity for outlier detection. Returns nothing.
@@ -51,6 +51,97 @@ def plot_velocity_MAD(
         resampled_df.loc[(resampled_df["Trial no"] == trial_no), "Pupil velocity"] = (
             trial["Pupil velocity"]
         )
+
+        # plot signal, velocity, threshold
+        plt.figure(figsize=(30, 10))
+
+        plt.plot(
+            resampled_df["Trial time Sec"][resampled_df["Trial no"] == trial_no],
+            resampled_df["Pupil velocity"][resampled_df["Trial no"] == trial_no],
+            label="speed mm/s",
+            marker=".",
+            linestyle="none",
+        )
+        plt.plot(
+            resampled_df["Trial time Sec"][resampled_df["Trial no"] == trial_no],
+            resampled_df["Stim eye - Size Mm"][resampled_df["Trial no"] == trial_no],
+            label="size mm",
+            marker=".",
+            linestyle="none",
+        )
+        plt.plot(
+            resampled_df["Trial time Sec"][
+                (resampled_df["Trial no"] == trial_no)
+                & (resampled_df["Pupil velocity"] > resampled_df["MAD speed threshold"])
+            ],
+            resampled_df["Stim eye - Size Mm"][
+                (resampled_df["Trial no"] == trial_no)
+                & (resampled_df["Pupil velocity"] > resampled_df["MAD speed threshold"])
+            ],
+            marker=".",
+            linestyle="none",
+            color="k",
+            label="Removed by MAD",
+        )
+        plt.plot(
+            resampled_df["Trial time Sec"][resampled_df["Trial no"] == trial_no],
+            resampled_df["MAD speed threshold"][resampled_df["Trial no"] == trial_no],
+            label="mad threshold speed mm",
+        )
+
+        plt.ylim([0, 10])
+        plt.grid(which="both")
+        plt.minorticks_on()
+        plt.title(str(trial_no))
+        plt.legend()
+        plt.xlabel("Time [s]")
+        plt.show()
+    # drop velocity and threshold columns to retain only clean dataframe
+    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold","Time diff","Size diff"])
+
+def plot_rolling_velocity_MAD(
+    resampled_df: pd.DataFrame, trials_to_vis: list, window=60, multiplier: float = 4.5
+):
+    """Function that plots for selected trials: pupil size from stimulated eye, pupil velocity (absolute), MAD threshold for pupil velocity for outlier detection. Returns nothing.
+
+    Args:
+        resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
+        trials_to_vis (list): list of trial numbers to visualize (from Trial no column)
+        multiplier (float, optional): multiplier for MAD threshold (threshold=median+multiplier*MAD). Defaults to 4.5.
+    """
+    # get time and size differences between samples
+    resampled_df["Time diff"] = resampled_df["Trial time Sec"].diff()
+    resampled_df["Size diff"] = resampled_df["Stim eye - Size Mm"].diff()
+    resampled_df.loc[resampled_df["Time diff"] < 0, "Size diff"] = pd.NA
+    resampled_df.loc[resampled_df["Time diff"] < 0, "Time diff"] = pd.NA
+
+    # iterate over trials to visualize
+    for trial_no in trials_to_vis:
+        trial = resampled_df[resampled_df["Trial no"] == trial_no].copy()
+        # calculate max velocity for a sample max[abs(v(t)),abs(v(t+1))]
+        trial["Pupil velocity -1"] = abs(trial["Size diff"] / trial["Time diff"])
+        trial["Pupil velocity +1"] = abs(
+            trial["Size diff"].shift(-1) / trial["Time diff"].shift(-1)
+        )
+        trial["Pupil velocity"] = trial[["Pupil velocity -1", "Pupil velocity +1"]].max(
+            axis="columns"
+        )
+        # get rolling MAD 
+        median = (
+            trial["Pupil velocity"]
+            .rolling(window=window, min_periods=1, center=True)
+            .median()
+        )
+
+        mad = (
+            trial["Pupil velocity"]
+            .rolling(window=window, min_periods=1, center=True)
+            .apply(lambda x: np.nanmedian(np.abs(x - np.nanmedian(x))), raw=True)
+        )
+
+        trial.loc[:, "MAD speed threshold"] = median + multiplier * mad
+        resampled_df.loc[resampled_df['Trial no']==trial_no,'MAD speed threshold'] = trial['MAD speed threshold']
+        resampled_df.loc[resampled_df['Trial no']==trial_no,'Pupil velocity'] = trial['Pupil velocity']
 
         # plot signal, velocity, threshold
         plt.figure(figsize=(30, 10))
