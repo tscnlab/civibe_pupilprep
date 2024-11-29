@@ -351,7 +351,7 @@ def remove_artifacts_non_physio_size(data_df: pd.DataFrame):
     return data_df
 
 
-def remove_artifacts_phase_velocity_mad(
+def remove_artefacts_phase_velocity_mad(
     resampled_df: pd.DataFrame,
     multiplier: float = 4.5,
     column: str = "Stim eye - Size Mm",
@@ -419,7 +419,7 @@ def remove_artifacts_phase_velocity_mad(
     return resampled_df
 
 
-def remove_artifacts_rolling_size_mad(
+def remove_artefacts_rolling_size_mad(
     resampled_df: pd.DataFrame,
     window: int = 60,
     multiplier: float = 4.5,

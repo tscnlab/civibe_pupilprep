@@ -235,7 +235,7 @@ def make_concat_df(fp_sequence: list, fp_protocol: str):
 def load_participant_data(
     participant_no: int,
     data_dir: str,
-    delay: float,
+    delay: float=1.0,
     include_failed=False,
     save=True,
     save_path="./results/",
@@ -245,7 +245,7 @@ def load_participant_data(
     Input:
     participant_no - int, index of the participant
     data_dir - string, path to directory with participant folders, with directory scheme data_dir/participant_no/03_expsession/retinawise
-    delay - float, delay in seconds from SW-HW
+    delay - float, delay in seconds from SW-HW, default:1.0
     include_failed - bool, whether to include the failed runs, if True: they are included, default: False
     save - bool, whether to save the created dataframes, if True, dataframes are saved to folder specified in save_path, default: True
     save_path - string, path to directory for saving the dataframes, default: './results/'
