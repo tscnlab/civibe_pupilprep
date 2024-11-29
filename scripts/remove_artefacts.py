@@ -1,9 +1,3 @@
-import sys
-
-sys.path.insert(
-    1, "..\\utilities\\"
-)  # adds utilities folder to path so we can import modules from it, won't be needed after packaging
-
 import datetime
 import pandas as pd
 import numpy as np
@@ -17,9 +11,10 @@ def main():
     
     participant_list = [200,201,202,204,205,206,207,209,210,211,212,213] 
     save_path_resampled = './results/resampled/'   # the path you used in load_and_resample
-    save_path_cleaned = './results/cleaned/'
+    save_path_cleaned = './results/cleaned/' #the path for saving no-artefact data, 2xx_cleaned_data.csv
     resampling_frequency = 30   # frequency data was resampled to
-    rolling_window_size = 60  # for rolling MAD, in samples, for retinawise it's 2 seconds so 2*resampling freq.
+    rolling_window_velocity = 60  # for rolling MAD for velocity thresholding, in samples, for retinawise it's 2 seconds so 2*resampling freq.
+    rolling_window_size = 60  # for rolling MAD for size thresholding, in samples, for retinawise it's 2 seconds so 2*resampling freq.
     multiplier_velocity = 4.5 # MAD threshold multiplier for velocity threshold
     multiplier_size = 4.5  # MAD threshold multiplier for size threshold
     columns = ['Stim eye - Size Mm']  # columns to remove artifacts from, by default just stimulated eye
@@ -32,14 +27,16 @@ def main():
         data_df = pd.read_csv(os.path.join(save_path_resampled,resampled_fp))
         
         for column in columns:
-            data_df = prep.remove_artefacts_phase_velocity_mad(
+            data_df = prep.remove_artefacts_rolling_velocity_mad(
                             resampled_df = data_df,
                             multiplier = multiplier_velocity,
+                            window = rolling_window_velocity,
                             column = column
                         )
             data_df = prep.remove_artefacts_rolling_size_mad(
                             resampled_df = data_df,
                             multiplier = multiplier_size,
+                            window = rolling_window_size,
                             column = column
                         )
         

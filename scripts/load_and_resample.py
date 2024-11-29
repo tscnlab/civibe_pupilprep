@@ -1,9 +1,3 @@
-import sys
-
-sys.path.insert(
-    1, "..\\utilities\\"
-)  # adds utilities folder to path so we can import modules from it, won't be needed after packaging
-
 import datetime
 import pandas as pd
 import numpy as np
