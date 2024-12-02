@@ -2,8 +2,8 @@ import datetime
 import pandas as pd
 import numpy as np
 import os
-import loading_utils as load
-import preprocessing_utils as prep
+from pupilprep_utilities import loading_utils as load
+from pupilprep_utilities import preprocessing_utils as prep
 
 
 def main():

@@ -21,7 +21,7 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
     # take subset of data without transition and adaptation parts (so without non-trial values)
     data_subset = data_df[(data_df["Trial no"].notna())]
 
-    # map trial-relevant variables to trial numbers for trial marking after resampling
+    # map trial-relevant variables to trial numbers for trial marking after resampling (can't resample strings easily but we know trial data)
     trial_list = sorted(data_subset["Trial no"].unique())
     stim_list = [
         data_subset["Trial type"][data_subset["Trial no"] == i].unique()[0]
@@ -44,29 +44,26 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
     ]
     participant = data_subset["Participant id"].unique()[0]
 
-    # make datetime index for resampling
-    data_subset["Trial time datetime"] = data_subset["Trial time Sec"].apply(
+    # make datetime index for resampling (pandas doesn't work without it)
+    data_subset.loc[:,"Trial time datetime"] = data_subset["Trial time Sec"].apply(
         lambda x: datetime.timedelta(seconds=x)
     )
     data_subset.set_index("Trial time datetime", inplace=True)
 
-    # remove rows with NaN in stimulated eye pupil size
-    data_subset = data_subset[data_subset["Stim eye - Size Mm"].notna()]
-
     # resample by trial and create a new dataframe
     trials_for_new_df = []
+    
     for i, trial_no in enumerate(trial_list):
-
         trial = data_subset[["Trial time Sec", "Stim eye - Size Mm","Right - Size Mm","Left - Size Mm"]][
             data_subset["Trial no"] == trial_no
         ].copy()
         # add a row at -1s so that every trial has the same time ticks
         trial.loc[datetime.timedelta(seconds=-1)] = (
-            pd.Series()
+            [pd.NA]*len(trial.columns)
         )  
         # just in case the trial is too short, add row at 18s (this ensures we have all trials at the same length - then they can e.g. easily go into an array)
         trial.loc[datetime.timedelta(seconds=18)] = (
-            pd.Series()
+            [pd.NA]*len(trial.columns)
         )  
         resampled_trial = trial.resample(str(time_step) + "ns").agg(
             {"Stim eye - Size Mm": "mean","Right - Size Mm": "mean","Left - Size Mm": "mean"}
@@ -75,6 +72,7 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
         resampled_trial = resampled_trial[
             datetime.timedelta(seconds=-1) : datetime.timedelta(seconds=18)
         ]
+
         # remake trial time column in seconds from new index
         resampled_trial["Trial time Sec"] = resampled_trial.index
         resampled_trial["Trial time Sec"] = resampled_trial["Trial time Sec"].apply(
@@ -91,7 +89,6 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
         resampled_trial["Participant id"] = [participant] * len(resampled_trial)
 
         # mark trial phases based on protocol
-        resampled_trial["Trial phase"] = ["N/A"] * len(resampled_trial)
         resampled_trial.loc[resampled_trial["Trial time Sec"] < 0, "Trial phase"] = (
             "pre-stim"
         )
@@ -103,6 +100,7 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
         resampled_trial.loc[resampled_trial["Trial time Sec"] > 5, "Trial phase"] = (
             "post-stim"
         )
+       
         trials_for_new_df.append(resampled_trial)
 
     new_df = pd.concat(trials_for_new_df)
@@ -406,7 +404,7 @@ def remove_artefacts_rolling_velocity_mad(
         ),
         column,
     ] = pd.NA
-    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold"])
+    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold","Time diff","Size diff"])
     
     
     return resampled_df
