@@ -1,6 +1,16 @@
 # civibe-pupilprep
 
-This is a Python repository for preprocessing pupillometry data.
+PLEASE READ BEFORE STARTING DATA PROCESSING.
+
+This is a Python repository for preprocessing pupillometry data. The data this was developed for was recorded using the retinaWISE device. Dominant eye was stimulated for the following conditions: flux, mel, lms, l-m, s. The experiment consists of 11 blocks, each with 2 recordings: test a and b, spaced over 40 hours.
+
+The protocol for one recording was as follows:
+1. 4 minutes adaptation sequence.
+2. 18 seconds sequence composed of: 5 s condition-based stim, 13 s baseline stim.
+
+In each test there was one adaptation sequence, and 5 condition sequences for each condition. The pre-stimulation phase which was used as baseline comes from 1 second period before stimulation onset (taken from the previous sequence).
+
+For the purpose of analysis, using this preprocessing pipeline the data is resampled to 30 Hz and segmented into 19 s long trials, lasting from -1 to 18 s. The artefacts are removed based on non-physiological pupil size outside of 1.5 - 9 mm range (pre-resampling), MAD pupil velocity thresholding (post-resampling), MAD pupil size thresholding (post-resampling, post-velocity thresholding). As the data is already sparse and underwent smoothing in device, we limit artefact removal to minimum.
 
 ## Installation
 
@@ -14,26 +24,26 @@ pip install -r requirements.txt
 
 load_ - notebooks relating to loading the data from raw data
 
-prep_ - notebooks relating to data preprocessing
+prep_ - notebooks relating to developing functions for data preprocessing
 
-eda_ - notebooks including exploratory data analysis
+eda_ - notebooks with exploratory data analysis relating to e.g. exploration of the recording details, determination of thresholds for data acceptance, statistics of data completeness
 
 ## Utilities explanation
 
-loading_utils - utilities relating to loading and marking data from raw files
+loading_utils - utilities for loading and marking data from raw files based on protocol
 
-preprocessing_utils - utilities relating to preprocessing data from dataframes created with loading_utils
+preprocessing_utils - utilities for preprocessing data from dataframes created with loading_utils, as in: resampling, artefact removal, trial/block rejection
 
 visualisation_utils - utilities for plotting data
 
-## Example: load and resample data to 50 Hz (see load_ notebooks)
+## Example: load and resample data to 30 Hz (see load_ notebooks)
 
 ```python
 import sys
 
 sys.path.insert(
     1, "..\\utilities\\"
-)  # adds utilities folder to path so we can import modules from it, won't be needed after packaging
+)  # adds utilities folder to path so we can import modules from it, won't be needed after packaging. in case of Linux - the path connectors (\\) may need to be changed
 
 import loading_utils as load
 import preprocessing_utils as prep
