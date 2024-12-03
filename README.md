@@ -2,7 +2,9 @@
 
 PLEASE READ BEFORE STARTING DATA PROCESSING.
 
-This is a Python repository for preprocessing pupillometry data. The data this was developed for was recorded using the retinaWISE device. Dominant eye was stimulated for the following conditions: flux, mel, lms, l-m, s. The experiment consists of 11 blocks, each with 2 recordings: test a and b, spaced over 40 hours.
+This is a Python repository for preprocessing pupillometry data. It is licensed under GPL-3.
+
+The data this was developed for was recorded using the retinaWISE device. Dominant eye was stimulated for the following conditions: flux, mel, lms, l-m, s. The experiment consists of 11 blocks, each with 2 recordings: test a and b, spaced over 40 hours.
 
 The protocol for one recording was as follows:
 1. 4 minutes adaptation sequence.
