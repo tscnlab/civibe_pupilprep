@@ -2,7 +2,9 @@
 
 PLEASE READ BEFORE STARTING DATA PROCESSING.
 
-This is a Python repository for preprocessing pupillometry data. The data this was developed for was recorded using the retinaWISE device. Dominant eye was stimulated for the following conditions: flux, mel, lms, l-m, s. The experiment consists of 11 blocks, each with 2 recordings: test a and b, spaced over 40 hours.
+This is a Python repository for preprocessing pupillometry data. It is licensed under GPL-3.
+
+The data this was developed for was recorded using the retinaWISE device. Dominant eye was stimulated for the following conditions: flux, mel, lms, l-m, s. The experiment consists of 11 blocks, each with 2 recordings: test a and b, spaced over 40 hours.
 
 The protocol for one recording was as follows:
 1. 4 minutes adaptation sequence.
@@ -14,19 +16,51 @@ For the purpose of analysis, using this preprocessing pipeline the data is resam
 
 ## Installation
 
-Use pip to install required libraries.
+First you need to build a wheel for the package. Run this in the repository folder:
 
 ```bash
-pip install -r requirements.txt
+python setup.py bdist_wheel
+```
+Then install the package from the wheel. To do so, run:
+
+```bash
+pip install .\dist\wheel-name-here.whl
+```
+For instance, for version 0.1.1 the wheel name is civibe_pupilprep_utils-0.1.1-py3-none-any.whl. Adjust formatting as needed (the above is for Windows). The package and dependencies should now be installed.
+
+Then you can import the package for instance as:
+
+```python
+
+import pupilprep_utilities
+
+print(pupilprep_utilities.preprocessing_utils.resample_by_trial.__doc__)
 ```
 
-## Notebook tags explanation
+or better import modules you need as:
 
-load_ - notebooks relating to loading the data from raw data
+```python
+
+import pupilprep_utilities.preprocessing_utils as prep
+
+print(prep.resample_by_trial.__doc__)
+```
+
+## Scripts to run before running the notebooks
+
+1. Run load_and_resample.py to get raw and resampled data. By default, data is resampled to 30 Hz and cut to -1:18 s trial segments.
+2. Run remove_artefacts.py to perform artefact removal on the resampled data. By default, it performs thresholding based on rolling pupil velocity MAD and rolling pupil size MAD.
+3. Run reject_incomplete.py to perform trial/block rejection on resampled and cleaned/ or just resampled data. By default the period of interest is 0:6 s with min. 75% completeness, baseline is -1:0 s with min. 40% completeness, no long NaN > 625 ms. A block is valid for the condition if it has min. 3 trials for that condition and flux. 
+
+## Notebooks explanation
+
+load_ - notebooks relating to loading the data from raw experiment files
 
 prep_ - notebooks relating to developing functions for data preprocessing
 
 eda_ - notebooks with exploratory data analysis relating to e.g. exploration of the recording details, determination of thresholds for data acceptance, statistics of data completeness
+
+All notebooks have a section 'Purpose of the notebook' which explains which data they use, from which script.
 
 ## Utilities explanation
 
@@ -36,62 +70,3 @@ preprocessing_utils - utilities for preprocessing data from dataframes created w
 
 visualisation_utils - utilities for plotting data
 
-## Example: load and resample data to 30 Hz (see load_ notebooks)
-
-```python
-import sys
-
-sys.path.insert(
-    1, "..\\utilities\\"
-)  # adds utilities folder to path so we can import modules from it, won't be needed after packaging. in case of Linux - the path connectors (\\) may need to be changed
-
-import loading_utils as load
-import preprocessing_utils as prep
-import pandas as pd
-import numpy as np
-import datetime
-
-# make full dataframe for one participant, don't include failed runs, don't save
-
-data_dir = 'path/to/directory/raw/' #path to directory with folders of structure participant/03_expsession/retinawise/...
-participant_id = #participant number here
-data_df, protocol_timecourse_df, protocol_vars_df = load.load_participant_data(participant_id,data_dir,include_failed=False,save=False)
-
-# make a new df with resampled trials and reduced columns, retaining block information
-
-resampled_df = prep.resample_by_trial(data_df,sample_freq=50)
-
-
-```
-
-## Example: remove trials with less than 40% not-nan data in baseline and less than 75% not-nan data in signal from 0 to 6 seconds from resampled data for participant 212
-
-```python
-import sys
-
-sys.path.insert(
-    1, "..\\utilities\\"
-)  # adds utilities folder to path so we can import modules from it, won't be needed after packaging
-
-import preprocessing_utils as prep
-import pandas as pd
-import numpy as np
-import datetime
-
-#load resampled dataframe
-data_dir = "./results/resampled/" #directory with resampled data 
-data_suffix = "_nonan_30_resampled_data.csv" #name of file with 30 Hz resampled data from participant 2xx, name format: 2xxdata_suffix
-
-data_path = os.path.join(data_dir, str(212) + data_suffix)
-data_df = pd.read_csv(data_path)
-
-#remove trials below threshold
-baseline_threshold = 40
-poi_threshold = 75
-baseline_time = [-1,0]
-poi_time = [0,6]
-
-thresholded_df = prep.remove_trials_below_percentage(data_df,baseline_threshold,poi_threshold,baseline_time,poi_time)
-
-
-```
