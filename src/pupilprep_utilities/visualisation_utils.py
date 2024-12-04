@@ -36,7 +36,7 @@ def plot_phase_velocity_MAD(
             axis="columns"
         )
 
-        #iterate over trial phases and calculate mad threshold for each phase
+        # iterate over trial phases and calculate mad threshold for each phase
         for phase in sorted(trial["Trial phase"].unique()):
 
             median = trial["Pupil velocity"][trial["Trial phase"] == phase].median()
@@ -99,7 +99,10 @@ def plot_phase_velocity_MAD(
         plt.xlabel("Time [s]")
         plt.show()
     # drop velocity and threshold columns to retain only clean dataframe
-    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold","Time diff","Size diff"])
+    resampled_df = resampled_df.drop(
+        columns=["Pupil velocity", "MAD speed threshold", "Time diff", "Size diff"]
+    )
+
 
 def plot_rolling_velocity_MAD(
     resampled_df: pd.DataFrame, trials_to_vis: list, window=60, multiplier: float = 4.5
@@ -129,7 +132,7 @@ def plot_rolling_velocity_MAD(
         trial["Pupil velocity"] = trial[["Pupil velocity -1", "Pupil velocity +1"]].max(
             axis="columns"
         )
-        # get rolling MAD 
+        # get rolling MAD
         median = (
             trial["Pupil velocity"]
             .rolling(window=window, min_periods=1, center=True)
@@ -143,8 +146,12 @@ def plot_rolling_velocity_MAD(
         )
 
         trial.loc[:, "MAD speed threshold"] = median + multiplier * mad
-        resampled_df.loc[resampled_df['Trial no']==trial_no,'MAD speed threshold'] = trial['MAD speed threshold']
-        resampled_df.loc[resampled_df['Trial no']==trial_no,'Pupil velocity'] = trial['Pupil velocity']
+        resampled_df.loc[
+            resampled_df["Trial no"] == trial_no, "MAD speed threshold"
+        ] = trial["MAD speed threshold"]
+        resampled_df.loc[resampled_df["Trial no"] == trial_no, "Pupil velocity"] = (
+            trial["Pupil velocity"]
+        )
 
         # plot signal, velocity, threshold
         plt.figure(figsize=(20, 7))
@@ -191,7 +198,10 @@ def plot_rolling_velocity_MAD(
         plt.xlabel("Time [s]")
         plt.show()
     # drop velocity and threshold columns to retain only clean dataframe
-    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold","Time diff","Size diff"])
+    resampled_df = resampled_df.drop(
+        columns=["Pupil velocity", "MAD speed threshold", "Time diff", "Size diff"]
+    )
+
 
 def plot_rolling_size_MAD(
     resampled_df: pd.DataFrame,
@@ -212,7 +222,7 @@ def plot_rolling_size_MAD(
         trial = resampled_df[resampled_df["Trial no"] == trial_no].copy(deep=True)
         trial.reset_index(inplace=True)
 
-        #calculate mad threshold, upper and lower in rolling window
+        # calculate mad threshold, upper and lower in rolling window
         median = (
             trial["Stim eye - Size Mm"]
             .rolling(window=window, min_periods=1, center=True)
@@ -234,8 +244,8 @@ def plot_rolling_size_MAD(
         resampled_df.loc[
             resampled_df["Trial no"] == trial_no, "MAD size lower threshold"
         ] = trial["MAD size lower threshold"].to_list()
-        
-        #plot signal, thresholds, samples removed by threshold
+
+        # plot signal, thresholds, samples removed by threshold
         plt.figure(figsize=(30, 10))
 
         plt.plot(
@@ -307,7 +317,7 @@ def plot_rolling_size_MAD(
         plt.title(str(trial_no))
         plt.xlabel("Time [s]")
         plt.show()
-    
+
     # drop unnecessary columns
     resampled_df = resampled_df.drop(
         columns=["MAD size upper threshold", "MAD size lower threshold"]
@@ -316,7 +326,15 @@ def plot_rolling_size_MAD(
 
 # Functions for EDA visualization of trials and blocks remaining after trial rejection based on percentage criteria and NaN criteria
 
-def plot_grid_stim_vs_baseline(data_dir:str, data_suffix:str, participant_list:list,threshold_step:float,poi_time:list=[0,6],baseline_time:list=[-1,0]):
+
+def plot_grid_stim_vs_baseline(
+    data_dir: str,
+    data_suffix: str,
+    participant_list: list,
+    threshold_step: float,
+    poi_time: list = [0, 6],
+    baseline_time: list = [-1, 0],
+):
     """Function for plotting grid of joint trial acceptance probability depending on threshold value for period of interest and baseline.
 
     Args:
@@ -339,7 +357,8 @@ def plot_grid_stim_vs_baseline(data_dir:str, data_suffix:str, participant_list:l
 
         baseline_df_new = data_df_new[data_df_new["Trial phase"] == "pre-stim"].copy()
         data_df_new = data_df_new[
-            (data_df_new["Trial time Sec"] >= poi_time[0]) & (data_df_new["Trial time Sec"] <= poi_time[1])
+            (data_df_new["Trial time Sec"] >= poi_time[0])
+            & (data_df_new["Trial time Sec"] <= poi_time[1])
         ].copy()
 
         groupby_df_stim = (
@@ -366,7 +385,11 @@ def plot_grid_stim_vs_baseline(data_dir:str, data_suffix:str, participant_list:l
 
         threshold_range = np.arange(0, 1 + threshold_step, threshold_step)
         baseline_stim_grid = np.zeros(
-            [len(data_df_new['Block'].unique()), int(1 / threshold_step) + 1, int(1 / threshold_step) + 1]
+            [
+                len(data_df_new["Block"].unique()),
+                int(1 / threshold_step) + 1,
+                int(1 / threshold_step) + 1,
+            ]
         )
         for k, block in enumerate(sorted(groupby_df_stim["Block", ""].unique())):
             trial_count = len(
@@ -397,8 +420,14 @@ def plot_grid_stim_vs_baseline(data_dir:str, data_suffix:str, participant_list:l
                     ) * 100  # percentage of trials accepted based on both baseline and POI threshold
 
         baseline_stim_grid_arrays[str(participant_id)] = baseline_stim_grid
-        
-    fig, axs = plt.subplots(len(participant_list), len(data_df_new["Block"].unique()), figsize=(35, 35), sharex=True, sharey=True)
+
+    fig, axs = plt.subplots(
+        len(participant_list),
+        len(data_df_new["Block"].unique()),
+        figsize=(35, 35),
+        sharex=True,
+        sharey=True,
+    )
     for i, participant_id in enumerate(participant_list):
         participant_array = baseline_stim_grid_arrays[str(participant_id)]
         for j, block in enumerate(np.arange(0, len(data_df_new["Block"].unique()))):
@@ -419,26 +448,26 @@ def plot_grid_stim_vs_baseline(data_dir:str, data_suffix:str, participant_list:l
             if i == 11:
                 axs[i, j].set_xlabel("baseline threshold %")
 
-
     plt.tight_layout()
     plt.show()
-    return baseline_stim_grid_arrays,fig,axs
+    return baseline_stim_grid_arrays, fig, axs
+
 
 def plot_trials_remaining_at_nan_threshold(
-    data_dir:str,
-    data_suffix:str,
-    participant_list:list,
-    fs:int=30,
-    nan_threshold_step:int=50,
-    baseline_threshold:int=40,
-    poi_threshold:int=75,
-    baseline_time:list=[-1, 0],
-    poi_time:list=[0, 6],
+    data_dir: str,
+    data_suffix: str,
+    participant_list: list,
+    fs: int = 30,
+    nan_threshold_step: int = 50,
+    baseline_threshold: int = 40,
+    poi_threshold: int = 75,
+    baseline_time: list = [-1, 0],
+    poi_time: list = [0, 6],
 ):
     """Function for plotting trajectories of trials remaining for conditions depending on NaN sequence length threshold.
-    
+
     Args:
-        data_dir (str): directory with resampled/cleaned data 
+        data_dir (str): directory with resampled/cleaned data
         data_suffix (str): suffix for data to be analyzed, e.g. "_30_resampled_data.csv"
         participant_list (list): list of participants
         fs (int, optional): Resampling frequency. Defaults to 30.
@@ -507,16 +536,23 @@ def plot_trials_remaining_at_nan_threshold(
 
         acceptance_threshold_dfs[str(participant_id)] = acceptance_threshold_df
 
-    fig, axs = plt.subplots(len(participant_list), len(data_df['Block'].unique()), figsize=(35, 35), sharex=True, sharey=True)
+    fig, axs = plt.subplots(
+        len(participant_list),
+        len(data_df["Block"].unique()),
+        figsize=(35, 35),
+        sharex=True,
+        sharey=True,
+    )
     for i, participant_id in enumerate(participant_list):
         participant_df = acceptance_threshold_dfs[str(participant_id)]
-        for j, block in enumerate(len(data_df['Block'].unique())):
+        for j, block in enumerate(len(data_df["Block"].unique())):
             try:
                 block_df = participant_df[participant_df["Block"] == block]
                 axs[i, j].fill_between(
                     x=np.arange(
                         participant_df["Threshold [s]"].min(),
-                        participant_df["Threshold [s]"].max() + nan_threshold_step / 1000,
+                        participant_df["Threshold [s]"].max()
+                        + nan_threshold_step / 1000,
                         nan_threshold_step / 1000,
                     ),
                     y1=3,
@@ -546,13 +582,13 @@ def plot_trials_remaining_at_nan_threshold(
 
     plt.tight_layout()
     plt.show()
-    return acceptance_threshold_dfs,fig,axs
-
+    return acceptance_threshold_dfs, fig, axs
 
 
 # Functions for plotting trials
 
-def plot_trials(data_df:pd.DataFrame, participant_id:int, trial_types: list):
+
+def plot_trials(data_df: pd.DataFrame, participant_id: int, trial_types: list):
     """Function for plotting trials.
 
     Args:
