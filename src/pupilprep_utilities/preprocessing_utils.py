@@ -240,6 +240,8 @@ def remove_bad_conditions(data_df: pd.DataFrame, trial_min: int = 3):
     Returns:
         pd.DataFrame: dataframe with conditions removed from blocks where they don't meet the minimum trial number
     """
+    data_df = data_df.copy()
+
     # aggregate unique trial numbers in each block-condition group
     groupby_condition_df = (
         data_df[["Block", "Trial type", "Trial no"]]
@@ -285,6 +287,7 @@ def remove_bad_blocks(data_df: pd.DataFrame):
     Returns:
         pd.DataFrame: dataframe with blocks that do not meet the requirement of flux and one other condition present removed
     """
+    data_df = data_df.copy()
 
     # aggregate unique trial numbers in each block-condition group
     groupby_condition_df = (
@@ -334,6 +337,8 @@ def remove_artefacts_non_physio_size(data_df: pd.DataFrame):
     Returns:
         pd.DataFrame: dataframe with non-physiological pupil sizes set to pd.NA
     """
+    data_df = data_df.copy()
+
     data_df.loc[
         (data_df["Right - Size Mm"] < 1.5) | (data_df["Right - Size Mm"] > 9),
         "Right - Size Mm",
@@ -366,6 +371,7 @@ def remove_artefacts_rolling_velocity_mad(
     Returns:
         pd.DataFrame: dataframe with pupil size in stimulated eye set to pd.NA where velocity exceeds threshold.
     """
+    resampled_df = resampled_df.copy()
 
     resampled_df["Time diff"] = resampled_df["Trial time Sec"].diff()
     resampled_df["Size diff"] = resampled_df[column].diff()
@@ -426,6 +432,8 @@ def remove_artefacts_phase_velocity_mad(
     Returns:
         pd.DataFrame: dataframe with pupil size in stimulated eye set to pd.NA where velocity exceeds threshold.
     """
+    resampled_df = resampled_df.copy()
+   
     # calculate time difference and pupil size difference between samples, setting negative time differences to pd.NA (they indicate transition between trials)
     resampled_df["Time diff"] = resampled_df["Trial time Sec"].diff()
     resampled_df["Size diff"] = resampled_df[column].diff()
@@ -484,6 +492,7 @@ def remove_artefacts_rolling_size_mad(
     multiplier: float = 4.5,
     column: str = "Stim eye - Size Mm",
 ):
+    
     """Function for removing artefacts based on median absolute deviation threshold for pupil size. Calculates MAD in a rolling window.
 
     Args:
@@ -495,6 +504,9 @@ def remove_artefacts_rolling_size_mad(
     Returns:
         pd.DataFrame: dataframe with pupil size samples out of MAD bounds replaced by pd.NA
     """
+    
+    resampled_df = resampled_df.copy()
+
     # iterate by trials because the signal is not continuous outside of them (due to transition times etc.)
     for trial_no in sorted(resampled_df["Trial no"].unique()):
         trial = resampled_df[resampled_df["Trial no"] == trial_no].copy(deep=True)

@@ -55,7 +55,7 @@ def plot_phase_velocity_MAD(
         )
 
         # plot signal, velocity, threshold
-        plt.figure(figsize=(30, 10))
+        plt.figure(figsize=(20, 7))
 
         plt.plot(
             resampled_df["Trial time Sec"][resampled_df["Trial no"] == trial_no],
@@ -147,7 +147,7 @@ def plot_rolling_velocity_MAD(
         resampled_df.loc[resampled_df['Trial no']==trial_no,'Pupil velocity'] = trial['Pupil velocity']
 
         # plot signal, velocity, threshold
-        plt.figure(figsize=(30, 10))
+        plt.figure(figsize=(20, 7))
 
         plt.plot(
             resampled_df["Trial time Sec"][resampled_df["Trial no"] == trial_no],
