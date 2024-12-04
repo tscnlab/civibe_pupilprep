@@ -88,7 +88,7 @@ def plot_phase_velocity_MAD(
         plt.plot(
             resampled_df["Trial time Sec"][resampled_df["Trial no"] == trial_no],
             resampled_df["MAD speed threshold"][resampled_df["Trial no"] == trial_no],
-            label="mad threshold speed mm",
+            label="mad threshold speed mm/s",
         )
 
         plt.ylim([0, 10])
@@ -187,7 +187,7 @@ def plot_rolling_velocity_MAD(
         plt.plot(
             resampled_df["Trial time Sec"][resampled_df["Trial no"] == trial_no],
             resampled_df["MAD speed threshold"][resampled_df["Trial no"] == trial_no],
-            label="mad threshold speed mm",
+            label="mad threshold speed mm/s",
         )
 
         plt.ylim([0, 10])
