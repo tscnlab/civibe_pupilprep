@@ -35,10 +35,10 @@ def make_filepaths(rootdir: str):
     return fp_protocol, fp_sequence, fp_whole_exp
 
 
-def mark_trials(data_df:pd.DataFrame, delay:float=1.5):
+def mark_trials(data_df: pd.DataFrame, delay: float = 1.5):
     """
-    Function for marking phases in the experiment, accounting for software delay. 
-    Warning: only columns created here have corrected labelling in regards to delay. 
+    Function for marking phases in the experiment, accounting for software delay.
+    Warning: only columns created here have corrected labelling in regards to delay.
     The raw data columns for excitation label, excitation index etc. are incorrect and should not be used further, since the labels were interpolated from time elapsed without accounting for delay.
     Input:
     data_df - dataframe with all pupillometry data from one participant, needs to have the column 'Eye' for stimulated eye and 'Recording id' for marking separate recordings
@@ -46,10 +46,10 @@ def mark_trials(data_df:pd.DataFrame, delay:float=1.5):
     Returns:
     data_df - dataframe from input with added columns Trial phase (Adaptation, pre-stim, stim, post-stim), Trial type (type of stimulation), Trial no (from 1::, excludes adaptation), Trial time Sec (from ca. -1 s to end of trial), Stim eye - Size Mm
     """
-    data_df["Trial phase"] = ["N/A"] * len(data_df) #pre-stim, stim, post-stim
-    data_df["Trial type"] = ["N/A"] * len(data_df) #s,lms,l-m,flux,mel
-    data_df["Trial no"] = pd.Series() #only for trials with stimulation 1::
-    data_df["Trial time Sec"] = pd.Series() #-1:
+    data_df["Trial phase"] = ["N/A"] * len(data_df)  # pre-stim, stim, post-stim
+    data_df["Trial type"] = ["N/A"] * len(data_df)  # s,lms,l-m,flux,mel
+    data_df["Trial no"] = pd.Series()  # only for trials with stimulation 1::
+    data_df["Trial time Sec"] = pd.Series()  # -1:
     data_df["Stim eye - Size Mm"] = pd.Series()
 
     trial_number = 1
@@ -61,24 +61,26 @@ def mark_trials(data_df:pd.DataFrame, delay:float=1.5):
             data_df["Sequence index"][data_df["Recording id"] == session_id].unique()
         )[1::]:
             # block for extracting stim start time and sequence end time in 'whole experiment' time ticks
-            corrected_seq_start_time = data_df["Sequence time Sec"][
-                (data_df["Recording id"] == session_id)
-                & (data_df["Sequence index"] == seq_id)
-            ].min() + delay #get true sequence start time by taking minimum of seq time column and adding delay 
-            
+            corrected_seq_start_time = (
+                data_df["Sequence time Sec"][
+                    (data_df["Recording id"] == session_id)
+                    & (data_df["Sequence index"] == seq_id)
+                ].min()
+                + delay
+            )  # get true sequence start time by taking minimum of seq time column and adding delay
+
             corrected_start_time = data_df["Overall time Sec"][
                 (data_df["Recording id"] == session_id)
                 & (data_df["Sequence index"] == seq_id)
-                & (data_df["Sequence time Sec"] >=corrected_seq_start_time)
-            ].min() #we take the overall time value corresponding to minimum of time values larger or equal to corrected sequence start time (since it may not be exact due to uneven sampling)
-            
+                & (data_df["Sequence time Sec"] >= corrected_seq_start_time)
+            ].min()  # we take the overall time value corresponding to minimum of time values larger or equal to corrected sequence start time (since it may not be exact due to uneven sampling)
+
             seq_end_time = data_df["Overall time Sec"][
                 (data_df["Recording id"] == session_id)
                 & (data_df["Sequence index"] == seq_id)
-                & (data_df["Experiment state"] == 'Active')
-            ].max() #max overall time value for this sequence for active exp state
-            
-            
+                & (data_df["Experiment state"] == "Active")
+            ].max()  # max overall time value for this sequence for active exp state
+
             # block for marking pre-stim and stim phases
             data_df.loc[
                 (data_df["Recording id"] == session_id)
@@ -86,30 +88,38 @@ def mark_trials(data_df:pd.DataFrame, delay:float=1.5):
                 & (data_df["Overall time Sec"] < corrected_start_time),
                 "Trial phase",
             ] = "pre-stim"  # -1 s from stimulation start time
-            
+
             data_df.loc[
                 (data_df["Recording id"] == session_id)
                 & (data_df["Overall time Sec"] >= corrected_start_time)
-                & (data_df["Overall time Sec"] < corrected_start_time+5),
+                & (data_df["Overall time Sec"] < corrected_start_time + 5),
                 "Trial phase",
             ] = "stim"  # 5 s of stimulation
 
             # block for extracting stimulation type in the sequence and marking the trial stimulation type
-            if eye == "L":  
+            if eye == "L":
                 stim = data_df["Excitation label - Left"][
                     (data_df["Sequence index"] == seq_id)
                     & (data_df["Recording id"] == session_id)
                     & (data_df["Trial phase"] == "stim")
-                    & (data_df["Excitation label - Left"].isin(['s','lms','l-m','flux','mel']))
+                    & (
+                        data_df["Excitation label - Left"].isin(
+                            ["s", "lms", "l-m", "flux", "mel"]
+                        )
+                    )
                 ].unique()[0]
             else:
                 stim = data_df["Excitation label - Right"][
                     (data_df["Sequence index"] == seq_id)
                     & (data_df["Recording id"] == session_id)
                     & (data_df["Trial phase"] == "stim")
-                    & (data_df["Excitation label - Right"].isin(['s','lms','l-m','flux','mel']))
+                    & (
+                        data_df["Excitation label - Right"].isin(
+                            ["s", "lms", "l-m", "flux", "mel"]
+                        )
+                    )
                 ].unique()[0]
-                
+
             data_df.loc[
                 (data_df["Recording id"] == session_id)
                 & (data_df["Overall time Sec"] >= corrected_start_time - 1)
@@ -123,7 +133,7 @@ def mark_trials(data_df:pd.DataFrame, delay:float=1.5):
                 & (data_df["Overall time Sec"] >= corrected_start_time - 1)
                 & (data_df["Overall time Sec"] <= seq_end_time),
                 "Trial no",
-            ] = trial_number  
+            ] = trial_number
             trial_number += 1
 
             # calculate trial time from -1 to end of sequence, with start of stim being at 0
@@ -155,11 +165,13 @@ def mark_trials(data_df:pd.DataFrame, delay:float=1.5):
             & (data_df["Trial no"].isna())
             & (data_df["Experiment state"] == "Passive"),
             "Trial phase",
-        ] = "Transition" # changes marking to Transition if experiment state is passive and doesn't belong to a trial
+        ] = "Transition"  # changes marking to Transition if experiment state is passive and doesn't belong to a trial
 
     data_df.loc[data_df["Eye"] == "L", "Stim eye - Size Mm"] = data_df["Left - Size Mm"]
-    data_df.loc[data_df["Eye"] == "R", "Stim eye - Size Mm"] = data_df["Right - Size Mm"]
-    
+    data_df.loc[data_df["Eye"] == "R", "Stim eye - Size Mm"] = data_df[
+        "Right - Size Mm"
+    ]
+
     return data_df
 
 
@@ -210,7 +222,7 @@ def make_whole_exp_df(fp_whole_exp: str, fp_protocol: str):
         "L" if "left" in fp_protocol else "R" for i in range(len(data_df))
     ]
     data_df["Filepath"] = [fp_whole_exp for i in range(len(data_df))]
-    
+
     return data_df
 
 
@@ -235,7 +247,7 @@ def make_concat_df(fp_sequence: list, fp_protocol: str):
 def load_participant_data(
     participant_no: int,
     data_dir: str,
-    delay: float=1.0,
+    delay: float = 1.0,
     include_failed=False,
     save=True,
     save_path="./results/",
@@ -272,14 +284,20 @@ def load_participant_data(
                     fp_protocol
                 )
                 exp_df = make_whole_exp_df(fp_whole_exp, fp_protocol)
-                
+
                 # get block and test numbers from directory path
-                if 'failed' in rootdir:
-                    if ("10a" in rootdir) or ("10b" in rootdir): #block 10 is an irregularity
+                if "failed" in rootdir:
+                    if ("10a" in rootdir) or (
+                        "10b" in rootdir
+                    ):  # block 10 is an irregularity
                         block = 10
-                        test = rootdir[-8] #suffix _failed is at the end of the dir name, we need to get element at -8th position to get test
+                        test = rootdir[
+                            -8
+                        ]  # suffix _failed is at the end of the dir name, we need to get element at -8th position to get test
                     else:
-                        block = int(rootdir[-9]) #as above, folders have name format xxx_9a_failed
+                        block = int(
+                            rootdir[-9]
+                        )  # as above, folders have name format xxx_9a_failed
                         test = rootdir[-8]
                 else:
                     if ("10a" in rootdir) or ("10b" in rootdir):
@@ -288,33 +306,29 @@ def load_participant_data(
                     else:
                         block = int(rootdir[-2])
                         test = rootdir[-1]
-                
+
                 # assign values in protocol and recording dataframes denoting recording, participant, block and test
                 protocol_vars_df["Recording id"] = [i] * len(protocol_vars_df)
                 protocol_vars_df["Participant id"] = [participant_no] * len(
                     protocol_vars_df
                 )
-                
+
                 protocol_vars_df["Block"] = [block] * len(protocol_vars_df)
                 protocol_vars_df["Test"] = [test] * len(protocol_vars_df)
-                
+
                 protocol_timecourse_df["Recording id"] = [i] * len(
                     protocol_timecourse_df
                 )
                 protocol_timecourse_df["Participant id"] = [participant_no] * len(
                     protocol_timecourse_df
                 )
-                protocol_timecourse_df["Block"] = [block] * len(
-                        protocol_timecourse_df
-                    )
-                protocol_timecourse_df["Test"] = [test] * len(
-                    protocol_timecourse_df
-                )
+                protocol_timecourse_df["Block"] = [block] * len(protocol_timecourse_df)
+                protocol_timecourse_df["Test"] = [test] * len(protocol_timecourse_df)
                 exp_df["Recording id"] = [i] * len(exp_df)
                 exp_df["Participant id"] = [participant_no] * len(exp_df)
                 exp_df["Block"] = [block] * len(exp_df)
                 exp_df["Test"] = [test] * len(exp_df)
-                
+
                 # save dataframes from one recording to lists to concatenate them later
                 protocol_vars_list.append(protocol_vars_df)
                 protocol_timecourse_list.append(protocol_timecourse_df)
@@ -330,7 +344,9 @@ def load_participant_data(
                     exp_df = make_whole_exp_df(fp_whole_exp, fp_protocol)
 
                     # get block and test names
-                    if ("10a" in rootdir) or ("10b" in rootdir): #block 10 is an irregularity
+                    if ("10a" in rootdir) or (
+                        "10b" in rootdir
+                    ):  # block 10 is an irregularity
                         block = 10
                         test = rootdir[-1]
                     else:
@@ -370,7 +386,7 @@ def load_participant_data(
             continue
     data_df = pd.concat(exp_list)
     data_df.reset_index(inplace=True)
-    data_df = mark_trials(data_df,delay)
+    data_df = mark_trials(data_df, delay)
     protocol_vars_df = pd.concat(protocol_vars_list)
     protocol_timecourse_df = pd.concat(protocol_timecourse_list)
     if save:
@@ -382,7 +398,3 @@ def load_participant_data(
             save_path + str(participant_no) + "_protocol_vars_data.csv"
         )
     return data_df, protocol_timecourse_df, protocol_vars_df
-
-
-class DataLoader:
-    pass
