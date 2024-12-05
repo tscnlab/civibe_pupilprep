@@ -12,6 +12,6 @@ setup(
     author_email="diana.glebowicz@gmail.com",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
-    license_files=("LICENSE.txt"),
+    license_files=("LICENSE"),
     install_requires=requirements,
 )
