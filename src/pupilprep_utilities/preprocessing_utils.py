@@ -373,7 +373,7 @@ def remove_artefacts_rolling_velocity_mad(
 
     Args:
         resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
-        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 4.5.
+        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 6.
         window (int, optional): rolling window size in samples. Defaults to 60.
         column (str,optional): column with signal to remove artifacts from. Defaults to 'Stim eye - Size Mm'.
 
@@ -438,7 +438,7 @@ def remove_artefacts_phase_velocity_mad(
 
     Args:
         resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
-        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 4.5.
+        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 6.
         column (str,optional): column with signal to remove artifacts from. Defaults to 'Stim eye - Size Mm'.
 
     Returns:
