@@ -26,7 +26,7 @@ def main():
     )
 
     if not os.path.exists(kwargs["save_path_complete"]):
-        os.mkdir(kwargs["save_path_complete"])
+        os.makedirs(kwargs["save_path_complete"])
 
     for participant_id in kwargs["participant_list"]:
 

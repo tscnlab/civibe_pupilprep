@@ -6,7 +6,7 @@ with open("requirements.txt") as f:
 
 setup(
     name="civibe-pupilprep-utils",
-    version="0.2.0",
+    version="0.2.5",
     description="Package for preprocessing pupillometry data recorded with RetinaWISE software",
     author="Diana Glebowicz, Hannah Sophie Heinrichs",
     author_email="diana.glebowicz@gmail.com",

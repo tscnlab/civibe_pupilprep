@@ -20,18 +20,18 @@ def main():
     )
 
     if kwargs["save_intermediate_steps"]:
-        for key in kwargs.keys:
+        for key in kwargs.keys():
             if "path" in key:
                 if not os.path.exists(kwargs[key]):
-                    os.mkdir(kwargs[key])
+                    os.makedirs(kwargs[key])
     else:
         if not os.path.exists(kwargs["save_path_final"]):
-            os.mkdir(kwargs["save_path_final"])
+            os.makedirs(kwargs["save_path_final"])
 
     for participant_id in kwargs["participant_list"]:
         print(str(participant_id) + ": performing preprocessing pipeline.")
         data_df = pipelines.full_preprocessing_pipeline(
-            kwargs["raw_data_dir"], participant_id, **kwargs
+            participant_id, **kwargs
         )
         data_df.to_csv(
             os.path.join(

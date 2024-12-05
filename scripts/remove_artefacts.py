@@ -23,7 +23,7 @@ def main():
     )
 
     if not os.path.exists(kwargs["save_path_cleaned"]):
-        os.mkdir(kwargs["save_path_cleaned"])
+        os.makedirs(kwargs["save_path_cleaned"])
 
     for participant_id in kwargs["participant_list"]:
 

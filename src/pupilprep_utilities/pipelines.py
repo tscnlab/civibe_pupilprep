@@ -6,8 +6,8 @@ import pupilprep_utilities.preprocessing_utils as prep
 
 
 def load_and_resample(
-    raw_data_dir: str,
     participant_id: int,
+    raw_data_dir: str="D:/retinawise_mirror/raw/",
     include_failed_raw: bool = False,
     save_raw: bool = True,
     save_path_raw: str = "./results/raw/",
@@ -19,7 +19,7 @@ def load_and_resample(
     For more details on functions/variables, refer to load.load_participant_data and prep.resample_by_trial.
 
     Args:
-        raw_data_dir (str): path to raw data.
+        raw_data_dir (str): path to raw data. Defaults to "D:/retinawise_mirror/raw/".
         participant_id (int): participant number.
         include_failed_raw (bool, optional): whether to include failed runs. Defaults to False.
         save_raw (bool, optional): whether to save raw data with trial defining variables added. Defaults to True.
@@ -71,6 +71,7 @@ def remove_artefacts(
     data_df = data_df.copy()
 
     for column in columns:
+        data_df[column] = pd.to_numeric(data_df[column])
         data_df = prep.remove_artefacts_rolling_velocity_mad(
             resampled_df=data_df,
             multiplier=multiplier_velocity,
@@ -138,8 +139,8 @@ def reject_incomplete_data(
 
 
 def full_preprocessing_pipeline(
-    raw_data_dir: str,
     participant_id: int,
+    raw_data_dir: str="D:/retinawise_mirror/raw/",
     save_path_resampled: str = "./results/resampled/",
     save_path_cleaned: str = "/results/cleaned/",
     save_path_complete: str = "/results/complete/",
@@ -150,8 +151,8 @@ def full_preprocessing_pipeline(
     For details of available keyword arguments (**kwargs), look in the load_and_resample, remove_artefacts, reject_incomplete_data pipelines.
 
     Args:
-        raw_data_dir (str): directory with raw data.
         participant_id (int): participant's number.
+        raw_data_dir (str,optional): directory with raw data. Defaults to 'D:/retinawise_mirror/raw/'.
         save_path_resampled (str, optional): save path for resampled data. Defaults to './results/resampled/'.
         save_path_cleaned (str, optional): save path for no artefacts data. Defaults to '/results/cleaned/'.
         save_path_complete (str, optional): save path for data after completeness-based rejection. Defaults to '/results/complete/'.
@@ -162,9 +163,7 @@ def full_preprocessing_pipeline(
         pd.DataFrame: fully preprocessed data from one participant
     """
 
-    data_df = data_df.copy()
-
-    data_df = load_and_resample(raw_data_dir, participant_id, **kwargs)
+    data_df = load_and_resample(participant_id, **kwargs)
     if save_intermediate_steps:
         data_df.to_csv(
             os.path.join(

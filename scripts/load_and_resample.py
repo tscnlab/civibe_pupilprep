@@ -23,10 +23,10 @@ def main():
     )
 
     if not os.path.exists(kwargs["save_path_resampled"]):
-        os.mkdir(kwargs["save_path_resampled"])
+        os.makedirs(kwargs["save_path_resampled"])
     if kwargs["save_raw"]:
         if not os.path.exists(kwargs["save_path_raw"]):
-            os.mkdir(kwargs["save_path_raw"])
+            os.makedirs(kwargs["save_path_raw"])
 
     for participant_id in kwargs["participant_list"]:
 
@@ -38,7 +38,7 @@ def main():
         )
 
         data_df = pipelines.load_and_resample(
-            kwargs["raw_data_dir"], participant_id, **kwargs
+            participant_id, **kwargs
         )
 
         resampled_fp = (
