@@ -48,9 +48,10 @@ print(prep.resample_by_trial.__doc__)
 
 ## Scripts to run before running the notebooks
 
-1. Run load_and_resample.py to get raw and resampled data. By default, data is resampled to 30 Hz and cut to -1:18 s trial segments.
-2. Run remove_artefacts.py to perform artefact removal on the resampled data. By default, it performs thresholding based on rolling pupil velocity MAD and rolling pupil size MAD.
-3. Run reject_incomplete.py to perform trial/block rejection on resampled and cleaned/ or just resampled data. By default the period of interest is 0:6 s with min. 75% completeness, baseline is -1:0 s with min. 40% completeness, no long NaN > 625 ms. A block is valid for the condition if it has min. 3 trials for that condition and flux. 
+Run fully_preprocess_all.py with saving intermediate steps enabled to get data from all preprocessing steps.
+1. load_and_resample: get raw and resampled data. By default, data is resampled to 30 Hz and cut to -1:18 s trial segments.
+2. remove_artefacts: perform artefact removal on the resampled data. By default, it performs thresholding based on rolling pupil velocity MAD and rolling pupil size MAD.
+3. reject_incomplete: perform trial/block rejection on resampled and cleaned/ or just resampled data. By default the period of interest is 0:6 s with min. 75% completeness, baseline is -1:0 s with min. 40% completeness, no long NaN > 625 ms. A block is valid for the condition if it has min. 3 trials for that condition and flux. 
 
 ## Notebooks explanation
 
@@ -69,4 +70,8 @@ loading_utils - utilities for loading and marking data from raw files based on p
 preprocessing_utils - utilities for preprocessing data from dataframes created with loading_utils, as in: resampling, artefact removal, trial/block rejection
 
 visualisation_utils - utilities for plotting data
+
+pipelines - module with pipelines for pupillometry preprocessing
+
+analysis_utils - utilities for data analysis after preprocessing
 
