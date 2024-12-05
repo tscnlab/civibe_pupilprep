@@ -585,10 +585,24 @@ def plot_trials_remaining_at_nan_threshold(
     return acceptance_threshold_dfs, fig, axs
 
 
-
-def plot_condition_availability(completeness_df:pd.DataFrame,
-                            participant_list:list = [200, 201, 202, 204, 205, 206, 207, 209, 210, 211, 212, 213], 
-                            conditions:list=["flux", "l-m", "lms", "mel", "s"]):
+def plot_condition_availability(
+    completeness_df: pd.DataFrame,
+    participant_list: list = [
+        200,
+        201,
+        202,
+        204,
+        205,
+        206,
+        207,
+        209,
+        210,
+        211,
+        212,
+        213,
+    ],
+    conditions: list = ["flux", "l-m", "lms", "mel", "s"],
+):
     """Function that plots condition availability in blocks.
 
     Args:
@@ -599,18 +613,23 @@ def plot_condition_availability(completeness_df:pd.DataFrame,
     Returns:
         fig,axes: Matplotlib figure and axes objects
     """
-    
-    fig, axes = plt.subplots(2, np.ceil(participant_list/2), figsize=(15, 5), sharex=True, sharey=True)
-    for participant_id, ax in zip(
-        participant_list, axes.flat
-    ):
+
+    fig, axes = plt.subplots(
+        2, np.ceil(participant_list / 2), figsize=(15, 5), sharex=True, sharey=True
+    )
+    for participant_id, ax in zip(participant_list, axes.flat):
         if participant_id in completeness_df["Participant"].unique():
-            subset_df = completeness_df[completeness_df["Participant"] == participant_id]
+            subset_df = completeness_df[
+                completeness_df["Participant"] == participant_id
+            ]
             subset_df.reset_index(inplace=True)
-            subset_df.loc[subset_df["Trial count"] == "less than 3", "Trial count"] = pd.NA
+            subset_df.loc[subset_df["Trial count"] == "less than 3", "Trial count"] = (
+                pd.NA
+            )
             for i, cond in enumerate(sorted(subset_df["Condition"].unique())):
                 subset_df.loc[
-                    (subset_df["Condition"] == cond) & (subset_df["Trial count"].notna()),
+                    (subset_df["Condition"] == cond)
+                    & (subset_df["Trial count"].notna()),
                     "Trial count",
                 ] = i
 
@@ -629,9 +648,9 @@ def plot_condition_availability(completeness_df:pd.DataFrame,
         ax.legend([], [], frameon=False)
     plt.tight_layout()
     plt.show()
-    return fig,axes
-    
-    
+    return fig, axes
+
+
 # Functions for plotting trials
 
 

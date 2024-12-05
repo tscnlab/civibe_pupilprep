@@ -5,12 +5,27 @@ import pupilprep_utilities.loading_utils as load
 import pupilprep_utilities.preprocessing_utils as prep
 
 
-def make_completeness_stats_df(data_dir:str,
-                               data_suffix:str='_complete_data.csv',
-                               participant_list: list= [200, 201, 202, 204, 205, 206, 207, 209, 210, 211, 212, 213],
-                               blocks:list=range(0, 11), 
-                               conditions:list=["flux", "l-m", "lms", "mel", "s"]):
-    """Function that generates a completeness dataframe for all participants. 
+def make_completeness_stats_df(
+    data_dir: str,
+    data_suffix: str = "_complete_data.csv",
+    participant_list: list = [
+        200,
+        201,
+        202,
+        204,
+        205,
+        206,
+        207,
+        209,
+        210,
+        211,
+        212,
+        213,
+    ],
+    blocks: list = range(0, 11),
+    conditions: list = ["flux", "l-m", "lms", "mel", "s"],
+):
+    """Function that generates a completeness dataframe for all participants.
     Has information on how many trials fulfill requirements of completeness in blocks.
 
     Args:

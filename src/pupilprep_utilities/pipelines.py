@@ -5,13 +5,17 @@ import pupilprep_utilities.loading_utils as load
 import pupilprep_utilities.preprocessing_utils as prep
 
 
-def load_and_resample(raw_data_dir:str, participant_id:int,
-    include_failed_raw:bool = False,
-    save_raw:bool = True,
-    save_path_raw:str = "./results/raw/",
-    delay_raw:float = 0,
-    resampling_frequency:int = 30,**kwargs):
-    """Pipeline for loading and resampling data. 
+def load_and_resample(
+    raw_data_dir: str,
+    participant_id: int,
+    include_failed_raw: bool = False,
+    save_raw: bool = True,
+    save_path_raw: str = "./results/raw/",
+    delay_raw: float = 0,
+    resampling_frequency: int = 30,
+    **kwargs
+):
+    """Pipeline for loading and resampling data.
     For more details on functions/variables, refer to load.load_participant_data and prep.resample_by_trial.
 
     Args:
@@ -38,17 +42,19 @@ def load_and_resample(raw_data_dir:str, participant_id:int,
 
     data_df = prep.remove_artefacts_non_physio_size(data_df)
     data_df = prep.resample_by_trial(data_df, sample_freq=resampling_frequency)
-    
+
     return data_df
 
-def remove_artefacts(data_df:pd.DataFrame,
-    rolling_window_velocity:int = 60,  
-    rolling_window_size:int = 60 , 
-    multiplier_velocity:float = 6 , 
-    multiplier_size:float = 4.5,
-    columns:list = [
-        "Stim eye - Size Mm"
-    ],**kwargs):
+
+def remove_artefacts(
+    data_df: pd.DataFrame,
+    rolling_window_velocity: int = 60,
+    rolling_window_size: int = 60,
+    multiplier_velocity: float = 6,
+    multiplier_size: float = 4.5,
+    columns: list = ["Stim eye - Size Mm"],
+    **kwargs
+):
     """Pipeline for removing artefacts from resampled data. For more details, refer to prep.remove_artefacts_... functions.
 
     Args:
@@ -63,31 +69,34 @@ def remove_artefacts(data_df:pd.DataFrame,
         pd.DataFrame: dataframe with artefacts in specified columns removed
     """
     data_df = data_df.copy()
-    
+
     for column in columns:
         data_df = prep.remove_artefacts_rolling_velocity_mad(
-                resampled_df=data_df,
-                multiplier=multiplier_velocity,
-                window=rolling_window_velocity,
-                column=column,
-            )
+            resampled_df=data_df,
+            multiplier=multiplier_velocity,
+            window=rolling_window_velocity,
+            column=column,
+        )
         data_df = prep.remove_artefacts_rolling_size_mad(
-                resampled_df=data_df,
-                multiplier=multiplier_size,
-                window=rolling_window_size,
-                column=column,
-            )
+            resampled_df=data_df,
+            multiplier=multiplier_size,
+            window=rolling_window_size,
+            column=column,
+        )
     return data_df
 
-def reject_incomplete_data(data_df:pd.DataFrame,
-    resampling_frequency:int = 30,
-                            baseline_time:list = [-1, 0],
-                            poi_time:list = [0, 6],
-                            baseline_threshold:int = 40,
-                            poi_threshold:int = 75,
-                            max_nan_length:int = 625,
-                            trial_min:int = 3,
-                            **kwargs):
+
+def reject_incomplete_data(
+    data_df: pd.DataFrame,
+    resampling_frequency: int = 30,
+    baseline_time: list = [-1, 0],
+    poi_time: list = [0, 6],
+    baseline_threshold: int = 40,
+    poi_threshold: int = 75,
+    max_nan_length: int = 625,
+    trial_min: int = 3,
+    **kwargs
+):
     """Pipeline for removal of incomplete data. For details, refer to prep.remove_trials_..., prep.remove_bad_conditions, prep.remove_bad_blocks.
 
     Args:
@@ -103,16 +112,16 @@ def reject_incomplete_data(data_df:pd.DataFrame,
     Returns:
         pd.DataFrame: dataframe with only blocks/conditions fulfilling completeness requirements
     """
-    
+
     data_df = data_df.copy()
-    
+
     data_df = prep.remove_trials_below_percentage(
-            resampled_df=data_df,
-            baseline_threshold=baseline_threshold,
-            poi_threshold=poi_threshold,
-            baseline_time=baseline_time,
-            poi_time=poi_time,
-        )
+        resampled_df=data_df,
+        baseline_threshold=baseline_threshold,
+        poi_threshold=poi_threshold,
+        baseline_time=baseline_time,
+        poi_time=poi_time,
+    )
 
     data_df = prep.remove_trials_with_long_nans(
         thresholded_df=data_df,
@@ -124,14 +133,20 @@ def reject_incomplete_data(data_df:pd.DataFrame,
     data_df = prep.remove_bad_conditions(data_df=data_df, trial_min=trial_min)
 
     data_df = prep.remove_bad_blocks(data_df=data_df)
-    
-    return data_df
-        
 
-def full_preprocessing_pipeline(raw_data_dir:str,participant_id:int,save_path_resampled:str='./results/resampled/',
-                                save_path_cleaned:str = '/results/cleaned/',
-                                save_path_complete:str='/results/complete/',save_intermediate_steps:bool=True,**kwargs):
-    """Main pipeline for full preprocessing. 
+    return data_df
+
+
+def full_preprocessing_pipeline(
+    raw_data_dir: str,
+    participant_id: int,
+    save_path_resampled: str = "./results/resampled/",
+    save_path_cleaned: str = "/results/cleaned/",
+    save_path_complete: str = "/results/complete/",
+    save_intermediate_steps: bool = True,
+    **kwargs
+):
+    """Main pipeline for full preprocessing.
     For details of available keyword arguments (**kwargs), look in the load_and_resample, remove_artefacts, reject_incomplete_data pipelines.
 
     Args:
@@ -146,19 +161,26 @@ def full_preprocessing_pipeline(raw_data_dir:str,participant_id:int,save_path_re
     Returns:
         pd.DataFrame: fully preprocessed data from one participant
     """
-    
+
     data_df = data_df.copy()
-    
-    data_df = load_and_resample(raw_data_dir,participant_id,**kwargs)
+
+    data_df = load_and_resample(raw_data_dir, participant_id, **kwargs)
     if save_intermediate_steps:
-        data_df.to_csv(os.path.join(save_path_resampled,str(participant_id)+'_resampled_data.csv'))
-    
-    data_df = remove_artefacts(data_df,**kwargs)
+        data_df.to_csv(
+            os.path.join(
+                save_path_resampled, str(participant_id) + "_resampled_data.csv"
+            )
+        )
+
+    data_df = remove_artefacts(data_df, **kwargs)
     if save_intermediate_steps:
-        data_df.to_csv(os.path.join(save_path_cleaned,str(participant_id)+'_cleaned_data.csv'))
-    
-    data_df = reject_incomplete_data(data_df,**kwargs)
-    data_df.to_csv(os.path.join(save_path_complete,str(participant_id)+'_complete_data.csv'))
-    
+        data_df.to_csv(
+            os.path.join(save_path_cleaned, str(participant_id) + "_cleaned_data.csv")
+        )
+
+    data_df = reject_incomplete_data(data_df, **kwargs)
+    data_df.to_csv(
+        os.path.join(save_path_complete, str(participant_id) + "_complete_data.csv")
+    )
+
     return data_df
-    
