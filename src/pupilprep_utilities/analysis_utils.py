@@ -5,11 +5,24 @@ import pupilprep_utilities.loading_utils as load
 import pupilprep_utilities.preprocessing_utils as prep
 
 
-def make_completeness_stats_df(data_dir,
-                               data_suffix,
-                               participant_list = [200, 201, 202, 204, 205, 206, 207, 209, 210, 211, 212, 213],
-                               blocks=np.arange(0, 11), 
-                               conditions=["flux", "l-m", "lms", "mel", "s"]):
+def make_completeness_stats_df(data_dir:str,
+                               data_suffix:str='_complete_data.csv',
+                               participant_list: list= [200, 201, 202, 204, 205, 206, 207, 209, 210, 211, 212, 213],
+                               blocks:list=range(0, 11), 
+                               conditions:list=["flux", "l-m", "lms", "mel", "s"]):
+    """Function that generates a completeness dataframe for all participants. 
+    Has information on how many trials fulfill requirements of completeness in blocks.
+
+    Args:
+        data_dir (str): directory to data to analyse.
+        data_suffix (str): suffix of datafiles to analyse. Format: 200data_suffix. Defaults to '_complete_data.csv'.
+        participant_list (list, optional): List of participants. Defaults to [200, 201, 202, 204, 205, 206, 207, 209, 210, 211, 212, 213].
+        blocks (list, optional): List of block numbers. Defaults to range(0, 11).
+        conditions (list, optional): List of condition names. Defaults to ["flux", "l-m", "lms", "mel", "s"].
+
+    Returns:
+        pd.DataFrame: dataframe with information on how many trials are available per condition in blocks. If less than 3, it's marked as such.
+    """
     completeness_dict = {
         "Participant": [],
         "Block": [],
