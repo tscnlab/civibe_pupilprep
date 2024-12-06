@@ -19,7 +19,7 @@ For the purpose of analysis, using this preprocessing pipeline the data is resam
 It's recommended you install requirements directly if you're not sure you have the wheel package. To do so, run:
 
 ```bash
-python install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 To get the package, first you need to build a wheel for it. Run this in the repository folder:
