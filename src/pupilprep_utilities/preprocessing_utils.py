@@ -3,7 +3,8 @@ import numpy as np
 import datetime
 from abc import ABC
 
-#Functions for resampling data
+# Functions for resampling data
+
 
 def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
     """Function for resampling raw data.
@@ -45,28 +46,33 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
     participant = data_subset["Participant id"].unique()[0]
 
     # make datetime index for resampling (pandas doesn't work without it)
-    data_subset.loc[:,"Trial time datetime"] = data_subset["Trial time Sec"].apply(
+    data_subset.loc[:, "Trial time datetime"] = data_subset["Trial time Sec"].apply(
         lambda x: datetime.timedelta(seconds=x)
     )
     data_subset.set_index("Trial time datetime", inplace=True)
 
     # resample by trial and create a new dataframe
     trials_for_new_df = []
-    
+
     for i, trial_no in enumerate(trial_list):
-        trial = data_subset[["Trial time Sec", "Stim eye - Size Mm","Right - Size Mm","Left - Size Mm"]][
-            data_subset["Trial no"] == trial_no
-        ].copy()
+        trial = data_subset[
+            [
+                "Trial time Sec",
+                "Stim eye - Size Mm",
+                "Right - Size Mm",
+                "Left - Size Mm",
+            ]
+        ][data_subset["Trial no"] == trial_no].copy()
         # add a row at -1s so that every trial has the same time ticks
-        trial.loc[datetime.timedelta(seconds=-1)] = (
-            [pd.NA]*len(trial.columns)
-        )  
+        trial.loc[datetime.timedelta(seconds=-1)] = [pd.NA] * len(trial.columns)
         # just in case the trial is too short, add row at 18s (this ensures we have all trials at the same length - then they can e.g. easily go into an array)
-        trial.loc[datetime.timedelta(seconds=18)] = (
-            [pd.NA]*len(trial.columns)
-        )  
+        trial.loc[datetime.timedelta(seconds=18)] = [pd.NA] * len(trial.columns)
         resampled_trial = trial.resample(str(time_step) + "ns").agg(
-            {"Stim eye - Size Mm": "mean","Right - Size Mm": "mean","Left - Size Mm": "mean"}
+            {
+                "Stim eye - Size Mm": "mean",
+                "Right - Size Mm": "mean",
+                "Left - Size Mm": "mean",
+            }
         )
         # cut trial to 18 s
         resampled_trial = resampled_trial[
@@ -100,7 +106,7 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
         resampled_trial.loc[resampled_trial["Trial time Sec"] > 5, "Trial phase"] = (
             "post-stim"
         )
-       
+
         trials_for_new_df.append(resampled_trial)
 
     new_df = pd.concat(trials_for_new_df)
@@ -109,6 +115,7 @@ def resample_by_trial(data_df: pd.DataFrame, sample_freq: int = 30):
 
 
 # Functions for rejecting incomplete data
+
 
 def remove_trials_below_percentage(
     resampled_df: pd.DataFrame,
@@ -240,6 +247,8 @@ def remove_bad_conditions(data_df: pd.DataFrame, trial_min: int = 3):
     Returns:
         pd.DataFrame: dataframe with conditions removed from blocks where they don't meet the minimum trial number
     """
+    data_df = data_df.copy()
+
     # aggregate unique trial numbers in each block-condition group
     groupby_condition_df = (
         data_df[["Block", "Trial type", "Trial no"]]
@@ -285,6 +294,7 @@ def remove_bad_blocks(data_df: pd.DataFrame):
     Returns:
         pd.DataFrame: dataframe with blocks that do not meet the requirement of flux and one other condition present removed
     """
+    data_df = data_df.copy()
 
     # aggregate unique trial numbers in each block-condition group
     groupby_condition_df = (
@@ -325,6 +335,7 @@ def remove_bad_blocks(data_df: pd.DataFrame):
 
 # Functions for removing artefacts
 
+
 def remove_artefacts_non_physio_size(data_df: pd.DataFrame):
     """Function setting the non-physiological pupil size values in either eye to NaN.
 
@@ -334,6 +345,8 @@ def remove_artefacts_non_physio_size(data_df: pd.DataFrame):
     Returns:
         pd.DataFrame: dataframe with non-physiological pupil sizes set to pd.NA
     """
+    data_df = data_df.copy()
+
     data_df.loc[
         (data_df["Right - Size Mm"] < 1.5) | (data_df["Right - Size Mm"] > 9),
         "Right - Size Mm",
@@ -348,9 +361,10 @@ def remove_artefacts_non_physio_size(data_df: pd.DataFrame):
     ] = pd.NA
     return data_df
 
+
 def remove_artefacts_rolling_velocity_mad(
     resampled_df: pd.DataFrame,
-    multiplier: float = 4.5,
+    multiplier: float = 6,
     window: int = 60,
     column: str = "Stim eye - Size Mm",
 ):
@@ -359,13 +373,14 @@ def remove_artefacts_rolling_velocity_mad(
 
     Args:
         resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
-        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 4.5.
+        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 6.
         window (int, optional): rolling window size in samples. Defaults to 60.
         column (str,optional): column with signal to remove artifacts from. Defaults to 'Stim eye - Size Mm'.
 
     Returns:
         pd.DataFrame: dataframe with pupil size in stimulated eye set to pd.NA where velocity exceeds threshold.
     """
+    resampled_df = resampled_df.copy()
 
     resampled_df["Time diff"] = resampled_df["Trial time Sec"].diff()
     resampled_df["Size diff"] = resampled_df[column].diff()
@@ -395,18 +410,21 @@ def remove_artefacts_rolling_velocity_mad(
         )
 
         trial.loc[:, "MAD speed threshold"] = median + multiplier * mad
-        resampled_df.loc[resampled_df['Trial no']==trial_no,'MAD speed threshold'] = trial['MAD speed threshold']
-        resampled_df.loc[resampled_df['Trial no']==trial_no,'Pupil velocity'] = trial['Pupil velocity']
-    
+        resampled_df.loc[
+            resampled_df["Trial no"] == trial_no, "MAD speed threshold"
+        ] = trial["MAD speed threshold"]
+        resampled_df.loc[resampled_df["Trial no"] == trial_no, "Pupil velocity"] = (
+            trial["Pupil velocity"]
+        )
+
     resampled_df.loc[
-        (
-            (resampled_df['Pupil velocity'] > resampled_df["MAD speed threshold"])
-        ),
+        ((resampled_df["Pupil velocity"] > resampled_df["MAD speed threshold"])),
         column,
     ] = pd.NA
-    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold","Time diff","Size diff"])
-    
-    
+    resampled_df = resampled_df.drop(
+        columns=["Pupil velocity", "MAD speed threshold", "Time diff", "Size diff"]
+    )
+
     return resampled_df
 
 
@@ -420,12 +438,14 @@ def remove_artefacts_phase_velocity_mad(
 
     Args:
         resampled_df (pd.DataFrame): resampled dataframe from preprocessing_utils.resample_by_trial
-        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 4.5.
+        multiplier (float, optional): multiplier for MAD threshold (median+multiplier*MAD). Defaults to 6.
         column (str,optional): column with signal to remove artifacts from. Defaults to 'Stim eye - Size Mm'.
 
     Returns:
         pd.DataFrame: dataframe with pupil size in stimulated eye set to pd.NA where velocity exceeds threshold.
     """
+    resampled_df = resampled_df.copy()
+
     # calculate time difference and pupil size difference between samples, setting negative time differences to pd.NA (they indicate transition between trials)
     resampled_df["Time diff"] = resampled_df["Trial time Sec"].diff()
     resampled_df["Size diff"] = resampled_df[column].diff()
@@ -434,9 +454,9 @@ def remove_artefacts_phase_velocity_mad(
 
     # iterate by trials because the signal is not continuous outside of them (due to transition times etc.)
     for trial_no in sorted(resampled_df["Trial no"].unique()):
-        
+
         trial = resampled_df[resampled_df["Trial no"] == trial_no].copy()
-        
+
         # calculate maximum absolute pupil velocity for each sample (max[abs(v(t)),abs(v(t+1))])
         trial["Pupil velocity -1"] = abs(trial["Size diff"] / trial["Time diff"])
         trial["Pupil velocity +1"] = abs(
@@ -453,7 +473,7 @@ def remove_artefacts_phase_velocity_mad(
             mad = (
                 abs(trial["Pupil velocity"][trial["Trial phase"] == phase] - median)
             ).median()
-            
+
             # get threshold and insert as a column in big dataframe
             threshold_up = median + multiplier * mad
             resampled_df.loc[
@@ -461,8 +481,7 @@ def remove_artefacts_phase_velocity_mad(
                 & (resampled_df["Trial phase"] == phase),
                 "MAD speed threshold",
             ] = threshold_up
-        
-    
+
         resampled_df.loc[(resampled_df["Trial no"] == trial_no), "Pupil velocity"] = (
             trial["Pupil velocity"]
         )
@@ -471,10 +490,12 @@ def remove_artefacts_phase_velocity_mad(
     resampled_df.loc[
         resampled_df["Pupil velocity"] > resampled_df["MAD speed threshold"], column
     ] = pd.NA
-    
+
     # drop difference, velocity and threshold columns to retain only clean dataframe
-    resampled_df = resampled_df.drop(columns=["Pupil velocity", "MAD speed threshold","Time diff","Size diff"])
-    
+    resampled_df = resampled_df.drop(
+        columns=["Pupil velocity", "MAD speed threshold", "Time diff", "Size diff"]
+    )
+
     return resampled_df
 
 
@@ -495,11 +516,14 @@ def remove_artefacts_rolling_size_mad(
     Returns:
         pd.DataFrame: dataframe with pupil size samples out of MAD bounds replaced by pd.NA
     """
+
+    resampled_df = resampled_df.copy()
+
     # iterate by trials because the signal is not continuous outside of them (due to transition times etc.)
     for trial_no in sorted(resampled_df["Trial no"].unique()):
         trial = resampled_df[resampled_df["Trial no"] == trial_no].copy(deep=True)
         trial.reset_index(inplace=True)
-        
+
         # calculate median in a rolling window
         median = (
             trial[column].rolling(window=window, min_periods=1, center=True).median()
@@ -540,7 +564,9 @@ def remove_artefacts_rolling_size_mad(
 
     return resampled_df
 
+
 # Others (WIP)
+
 
 def calculate_change_from_baseline(data_df):
     data_df["Baseline change %"] = pd.Series()
@@ -551,8 +577,3 @@ def calculate_change_from_baseline(data_df):
             (trial_df["Stim eye - Size Mm"] - baseline) * 100 / baseline
         )
     return data_df
-
-
-class Preprocessor(ABC):
-    def __init__(self, data_df):
-        self.data_df = data_df.copy()
