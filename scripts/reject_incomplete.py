@@ -14,7 +14,7 @@ def main():
 
     kwargs = dict(
         participant_list=[200, 201, 202, 204, 205, 206, 207, 209, 210, 211, 212, 213],
-        save_path_cleaned=("./results/cleaned/"),
+        save_path_cleaned="./results/cleaned/",
         save_path_complete="./results/complete/",
         resampling_frequency=30,
         baseline_time=[-1, 0],
