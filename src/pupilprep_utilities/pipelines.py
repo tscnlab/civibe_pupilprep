@@ -133,7 +133,7 @@ def reject_incomplete_data(
 
     data_df = prep.remove_bad_conditions(data_df=data_df, trial_min=trial_min)
 
-    data_df = prep.remove_bad_blocks(data_df=data_df)
+    # data_df = prep.remove_bad_blocks(data_df=data_df)  #keeping this as a legacy line but it's not run anymore as requirements changed
 
     return data_df
 
